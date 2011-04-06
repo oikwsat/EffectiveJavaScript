@@ -1,0 +1,354 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+	<head>
+<BASE HREF="http://www.interq.or.jp.wstub.archive.org/student/exeal/dss/ejs/3/3.html">
+
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta http-equiv="Content-Style-Type" content="text/css" />
+		<meta http-equiv="Content-Script-Type" content="text/javascript" />
+		<link rev="made" href="mailto:exeal&#64;student.interq.or.jp" />
+		<link rel="contents" href="http://web.archive.org/web/20060620154244/http://www.interq.or.jp/student/exeal/dss/ejs/" />
+		<link rel="start" href="./">
+		<link rel="next" href="./4.html" />
+		<link rel="prev" href="./2.html" />
+		<link rel="styleSheet" type="text/css" href="../../header/leaf.css" title="Default" />
+		<title>[3.3 アクセスレベル] Effective JavaScript - Dynamic Scripting</title>
+		<script type="text/javascript" src="../../header/main.js"></script>
+	</head>
+	<body>
+		<p id="shortcutToMain"><a href="#mainContent" accesskey="1">本文へジャンプ</a></p>
+		<script type="text/javascript" src="../../header/primary_navigation_bar.js"></script>
+		<div id="root">
+			<script type="text/javascript" src="../../header/secondary_navigation_bar.js"></script>
+			<div id="dir">
+				<a href="./">トップ</a> &gt; <a href="../">Effective JavaScript</a> &gt; <a href="./">3 オブジェクト</a> &gt; 3.3 アクセスレベル
+			</div>
+
+			<div id="mainContent">
+				<h1>3.3 アクセスレベル</h1>
+				<p>世の中には知らない方が良いことがあります。自動販売機ではお金を入れてボタンを押せば目的の商品は得られます。自動販売機の内部事情について、あなたの知識が皆無でも商品は手に入ります</p>
+				<p>オブジェクトの実装者が望むことはオブジェクトの機能をクライアントに提示することであり、クライアントが知りたいことはオブジェクトが持っている機能です。クライアントに公開されているオブジェクトであればあらゆるオブジェクトはこの原則に基づきます。オブジェクトとクライアントの間には (普通) これ以上の情報交換は必要ありません。この種の情報交換量を抑えるために実装側ができることは、オブジェクトの内部事情を隠してしまうことです。オブジェクトは自分が提供できる機能を含む最小限の情報だけを公開し、公開する必要の無い細かい実装はその存在自体をクライアントから隠蔽するのです</p>
+
+				<div class="clsSection2">
+					<h2>public メンバ、private メンバ</h2>
+					<p>オブジェクトのメンバにはクライアントに公開されているものやクライアントに対して非公開になっているものがあります。<em>公開 (public) メンバ</em> についてクライアントは制限なしにアクセスできます。メソッドであれば自由に呼び出すことができ、プロパティであれば読み取り、或いは書き込みが可能です。これに対して <em>非公開 (private) メンバ</em> はクライアントからは一切アクセスできません。クライアントに提示する必要の無いメンバをこの private メンバにすることでクライアントから隠すことができます</p>
+					<p>JavaScript には非公開メンバを定義する公式の方法がありません。私が考えた代替案には以下のものがあります:</p>
+					<ul>
+						<li>名前付け規約</li>
+						<li>専用の名前空間を使う</li>
+						<li>コンストラクタ内で非公開メンバを <code>var</code> 宣言し、ゲッタ、セッタをオブジェクトにセットする</li>
+						<li>コンストラクタ内で非公開メンバの集合を <code>var</code> 宣言し、参照テーブルを使う</li>
+					</ul>
+					<p>以下、順に見ていくことにしましょう</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>名前付け規約</h2>
+					<p>これは最もよく用いられる方法です。例えば非公開メンバの名前をアンダースコアで始めることにします</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>._nAge = Number(nAge);
+}
+Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>._nAge;
+};
+					</code></pre>
+					<p>安直な方法ですが意外に説得力があります。「アンダースコアで始まる名前のメンバはむやみに変更しないで下さい」というようなコメントが書かれていることもあります。ここまでされるとコードを見る側は private (とされている) メンバに直接アクセスしようなどと思わなくなります</p>
+					<p>また、ECMAScript の文法から逸脱したことは何もしていないので問題は全く起こりません</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>専用の名前空間を使う</h2>
+					<p>私がよく使う方法です。仕組みは非常に簡単です。オブジェクトに _private という名前のプロパティを追加し、このオブジェクトに非公開メンバを定義します</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>._private = {
+    m_nAge : nAge
+  };
+}
+Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>._private.m_nAge;
+};
+					</code></pre>
+					<p>オブジェクトに直接含まれるプロパティが公開メンバというわけです。文法上の抑止力はありませんが、意図していることはすぐに分かるでしょう。メソッドを private にする場合は以下のようにするしかありません</p>
+					<pre><code class="clsSample">
+Person.prototype._private = {
+  getAge : <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>._private.m_nAge;
+  }
+};
+Person.prototype.doSomethingWithAge = <span class="clsLxrKeyword">function</span>() {
+  Person.prototype._private.getAge.call(<span class="clsLxrKeyword">this</span>);
+  <span class="clsLxrComment">// ...</span>
+};
+					</code></pre>
+					<p>prototype と _private を逆にするのもありですが</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>コンストラクタ内で非公開メンバを var 宣言し、ゲッタ、セッタをオブジェクトにセットする</h2>
+					<p>これはよく紹介される方法ですが、実際に使用されている例は多くありません。コードを見た方が早いでしょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">var</span> m_nAge = Number(nAge);
+  <span class="clsLxrKeyword">this</span>.getAge = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> m_nAge;
+  };
+}
+					</code></pre>
+					<p>コンストラクタ内で宣言された局所変数は同じく局所宣言された無名関数から参照されます。このためコンストラクタのスコープが終了しても m_nAge は生き続けます (そしてコンストラクタ呼出し毎に新しい局所変数が用意されます)</p>
+					<p>この方法の問題点はメソッドをプロトタイプではなく、オブジェクト自身にセットしていることです。これでは継承できませんし、ECMAScript のプロトタイプベースのセマンティクスから外れてしまいます。しかしこれらに目を瞑れば完璧に動作します</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>コンストラクタ内で非公開メンバの集合を var 宣言し、参照テーブルを使う</h2>
+					<p>これはあまり見かけない例で、実際に使われているコードもあまりありません。この方法では private メンバの集合をコンストラクタ内で局所宣言します。この集合は同じコンストラクタから作成される全てのオブジェクトの非公開メンバをまとめたものです。この集合の永続性はクロージャを使えば保証できるでしょう (1つ前の方法と同じ)。あとはこの集合に含まれる private メンバとオブジェクトを対応させるだけです。具体的には以下のようになります</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person() {
+  <span class="clsLxrKeyword">var</span> m_cInstances = <span class="clsLxrNum">0</span>;    <span class="clsLxrComment">// インスタンスの通し番号</span>
+  <span class="clsLxrKeyword">var</span> m_arrInstances = []; <span class="clsLxrComment">// 通し番号 -&gt; インスタンスの変換配列</span>
+  <span class="clsLxrKeyword">var</span> m_arrPrivates = [];  <span class="clsLxrComment">// 通し番号 -&gt; 非公開メンバの変換配列</span>
+  <span class="clsLxrKeyword">function</span> findPrivate(oThis) { <span class="clsLxrComment">// インスタンス -&gt; 非公開メンバの変換関数</span>
+    <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; m_arrInstances.length; ++i) {
+      <span class="clsLxrKeyword">if</span>(oThis == m_arrInstances[i])
+        <span class="clsLxrKeyword">return</span> m_arrPrivates[i];
+    }
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">null</span>;
+  }
+
+  <span class="clsLxrComment">// コンストラクタを書き換える</span>
+  Person = <span class="clsLxrKeyword">function</span>(nAge) {
+    m_arrInstances[m_cInstances] = <span class="clsLxrKeyword">this</span>;
+    m_arrPrivates[m_cInstances++] = {
+      m_nAge : Number(nAge)
+    };
+  };
+
+  <span class="clsLxrComment">// メソッドの定義</span>
+  Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> findPrivate(<span class="clsLxrKeyword">this</span>).m_nAge;
+  };
+
+} Person(); <span class="clsLxrComment">// コンストラクタの書き換えを実行</span>
+					</code></pre>
+					<p>最初に4つの局所定義があります。コンストラクタ内にはこれらを参照するメンバがあるので、コンストラクタ終了後もこれらは有効です。ただしこの局所定義は1つあれば十分なもので、コンストラクタが呼び出される度に作成されるべきではありません。最初の呼び出しでのみこれらの局所宣言を評価させるには1回目の呼び出しでコンストラクタ自身を書き換えます。勿論コンストラクタを書き換えても局所定義は有効なままです。これでコンストラクタに1つしか存在しない変数が作成できました</p>
+					<p>実際に呼び出されるコンストラクタでは局所配列 m_arrInstances に自身を追加しています。そしてもう一方の配列 m_arrPrivates に非公開メンバのコレクションを追加しています。このときの添字はインスタンスの通し番号で、インスタンスが作成される度に1増加されます</p>
+					<p>メソッド内で非公開メンバを参照場合は局所関数 findPrivate を使います。この関数はインスタンスを非公開メンバコレクションに変換します。findPrivate の内部ではインスタンスを m_arrInstances から探し、その添字を使って m_arrPrivates からコレクションを取得します</p>
+					<p>コンストラクタ定義の後にコンストラクタを1回以上呼び出すのを忘れないで下さい。またメソッド定義の場所にも注意が必要です。メソッド定義は findPrivate か可視である位置、古いコンストラクタのスコープでなければなりません。且つコンストラクタ書き換えの後ろである必要があります</p>
+					<p>ただ非公開メンバを探すのに少し時間がかかるので効率はあまりよくありません (インスタンスの数に比例して悪くなります)。また、この方法や1つ前の方法では非公開メンバは実際にはインスタンスから離れた場所にあるため、<code>Function::call</code> メソッドなど他のオブジェクトを介してメソッドを呼び出すと不具合が生じます (ただし他のオブジェクトを適用できるかどうかはメソッドの設計者に決定権があります)</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>protected メンバ</h2>
+					<p>1つ事がうまくいくと欲が出るものです。次は <em>限定公開 (protected) メンバ</em> について考えてみましょう。静的オブジェクト指向 (?) において限定公開メンバはそのクラスと派生クラスに対して公開されているメンバです。継承関係を持たないクライアントはアクセスできません</p>
+					<p>限定公開メンバについても正式に定義方法があるわけではありません。私が考えた代替案は次の3つです</p>
+					<ul>
+						<li>名前付け規約</li>
+						<li>専用の名前空間を使う</li>
+						<li>private 参照テーブルを継承先メソッドからも可視にする</li>
+					</ul>
+					<p>以下、順に見ていくことにしましょう</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>名前付け規約</h2>
+					<p>非公開メンバのときと同じです。例えばメンバ名を2つのアンダースコアで始めます</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// 基底コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.__nAge = nAge;   <span class="clsLxrComment">// 限定公開メンバ</span>
+  <span class="clsLxrKeyword">this</span>._oSpouse = <span class="clsLxrNum">null</span>; <span class="clsLxrComment">// 非公開メンバ</span>
+}
+
+<span class="clsLxrComment">// 派生コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Programmer(nAge) {
+  <span class="clsLxrComment">/* 基底コンストラクタの呼び出しは省略 */</span>
+}
+Programmer.prototype = <span class="clsLxrKeyword">new</span> Person;
+Programmer.prototype.doSomethingWithMembers = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">this</span>.__nAge;   <span class="clsLxrComment">// ok</span>
+  <span class="clsLxrKeyword">this</span>._oSpouse; <span class="clsLxrComment">// エラーが起こるわけではないが危険</span>
+};
+					</code></pre>
+					<p>この方法はあまり効果がありません。どっちがどっちか分からなくなります</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>専用の名前空間を使う</h2>
+					<p>これは簡単で、見た目にも分かり易いものです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// 基底コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Person(nAge_) {
+  <span class="clsLxrKeyword">this</span>._protected = { <span class="clsLxrComment">// 限定公開メンバ</span>
+    nAge : nAge_
+  };
+  <span class="clsLxrKeyword">this</span>._private = {   <span class="clsLxrComment">// 非公開メンバ</span>
+    oSpouse : <span class="clsLxrNum">null</span>
+  };
+}
+
+<span class="clsLxrComment">// 派生コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Programmer(nAge_) {
+  <span class="clsLxrComment">/* 基底コンストラクタの呼び出しは省略 */</span>
+}
+Programmer.prototype = <span class="clsLxrKeyword">new</span> Person;
+Programmer.prototype.doSomethingWithMembers = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">this</span>._protected.nAge;  <span class="clsLxrComment">// ok</span>
+  <span class="clsLxrKeyword">this</span>._private.oSpouse; <span class="clsLxrComment">// エラーが起こるわけではないが危険</span>
+};
+					</code></pre>
+					<p>ただし限定公開メソッドを定義するのが困難になります</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>private 参照テーブルを継承先メソッドからも可視にする</h2>
+					<p>非公開メンバのときに使ったテクニックはクロージャを使って、非公開メンバにアクセス可能なメンバを限定するというものでした。派生コンストラクタのプロトタイプにもメンバを公開すれば限定公開メンバが実現できそうです</p>
+					<p>考え方は非公開メンバと同じで、限定公開メンバを集めたテーブルを基底コンストラクタの古いコンストラクタに局所定義します。あとはこのテーブルを参照する局所関数 findProtected を継承先コンストラクタに公開するだけです。findProtected への参照を受け取った継承先コンストラクタはこの参照を含むメソッドを定義し、この参照自体も外から隠蔽するためにコンストラクタを書き換えます。以下に非公開メンバと限定公開メンバを使ったコードとモデル図を示します</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person() {
+  <span class="clsLxrKeyword">var</span> m_cInstances = <span class="clsLxrNum">0</span>;      <span class="clsLxrComment">// インスタンスの通し番号</span>
+  <span class="clsLxrKeyword">var</span> m_arrInstances = [];   <span class="clsLxrComment">// 通し番号 -&gt; インスタンスの変換配列</span>
+  <span class="clsLxrKeyword">var</span> m_arrPrivates = [];    <span class="clsLxrComment">// 通し番号 -&gt; 非公開メンバの変換配列</span>
+  <span class="clsLxrKeyword">var</span> m_arrProtecteds = [];  <span class="clsLxrComment">// 通し番号 -&gt; 限定公開メンバの変換配列</span>
+  <span class="clsLxrKeyword">function</span> findPrivate(oThis) { <span class="clsLxrComment">// インスタンス -&gt; 非公開メンバの変換関数</span>
+    <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; m_arrInstances.length; ++i) {
+      <span class="clsLxrKeyword">if</span>(oThis == m_arrInstances[i])
+        <span class="clsLxrKeyword">return</span> m_arrPrivates[i];
+    }
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">null</span>;
+  }
+  <span class="clsLxrKeyword">function</span> findProtected(oThis) { <span class="clsLxrComment">// インスタンス -&gt; 限定公開メンバの変換関数</span>
+    <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; m_arrInstances.length; ++i) {
+      <span class="clsLxrKeyword">if</span>(oThis == m_arrInstances[i])
+        <span class="clsLxrKeyword">return</span> m_arrProtecteds[i];
+    }
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">null</span>;
+  }
+
+  <span class="clsLxrComment">// コンストラクタを書き換える</span>
+  Person = <span class="clsLxrKeyword">function</span>(nAge, nSalary) {
+    m_arrInstances[m_cInstances] = <span class="clsLxrKeyword">this</span>;
+    m_arrPrivates[m_cInstances] = {
+      m_nAge : Number(nAge)
+    };
+    m_arrProtecteds[m_cInstances] = {
+      m_nSalary : Number(nSalary)
+    };
+    <span class="clsLxrKeyword">this</span>.findProtected = findProtected; <span class="clsLxrComment">// 継承先コンストラクタに参照を渡す</span>
+  };
+
+  <span class="clsLxrComment">// メソッドの定義</span>
+  Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> findPrivate(<span class="clsLxrKeyword">this</span>).m_nAge;
+  };
+
+} Person(); <span class="clsLxrComment">// Person コンストラクタの書き換えを実行</span>
+
+<span class="clsLxrComment">// 継承先コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Programmer() {
+  Person.call(<span class="clsLxrKeyword">this</span>); <span class="clsLxrComment">// findProtected への参照を受け取る</span>
+  <span class="clsLxrKeyword">var</span> findProtected = <span class="clsLxrKeyword">this</span>.findProtected;
+
+  <span class="clsLxrComment">// コンストラクタを書き換える</span>
+  Programmer = <span class="clsLxrKeyword">function</span>(nAge, nSalary) {
+    Person.call(<span class="clsLxrKeyword">this</span>, nAge, nSalary); <span class="clsLxrComment">// 普段通りのプロパティの継承</span>
+    <span class="clsLxrKeyword">this</span>.constructor = Programmer;
+    <span class="clsLxrKeyword">this</span>.findProtected = <span class="clsLxrNum">undefined</span>;
+  };
+
+  <span class="clsLxrComment">// プロトタイプ継承もここで行う</span>
+  Programmer.prototype = <span class="clsLxrKeyword">new</span> Person;
+
+  <span class="clsLxrComment">// メソッドの定義</span>
+  Programmer.prototype.getSalary = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> findProtected(<span class="clsLxrKeyword">this</span>).m_nSalary;
+  };
+} Programmer(); <span class="clsLxrComment">// Programmer コンストラクタの書き換えを実行</span>
+					</code></pre>
+					<p><img class="clsFloatLeft" src="../../image/ejs00.png" alt="Fig. 3.1 非公開メンバと限定公開メンバのモデル" width="350" height="252" /><br />ここでも「クロージャ様様」なわけですが、少し複雑すぎるような気がしますね。少々目的がぼやけてきましたが、順に説明しましょう。この例では m_nSalary を限定公開メンバにすることを考えています。非公開メンバの場合と同様に参照テーブルに格納し、局所宣言された findProtected でのみアクセスできるようにしています。findProtected 関数はインスタンスを引数にとり、そのインスタンスの限定公開メンバの集合を返します</p>
+					<p>あとはこの関数を継承先から見えるようにすればいいのですが、グローバル変数に参照させると他からもアクセスされてしまいます。コンストラクタ外からこの関数を使おうとしても、実際には目的のインスタンスが必要なのですが、ここで使われている方法は関数自体を外に漏らさないようにしています。こういう場合は単純にソースコード上で静的にスコープの関係を考えても駄目です。重要なのは継承先コンストラクタのメソッドが定義されるコンテキストで、この局所変数への参照が存在していれば良いという点です。メソッドを定義するタイミングを一瞬のものとするテクニックは前にも出てきました。コンストラクタの書き換えです</p>
+					<p>書き換える前のコンストラクタに findProtected への参照を落とし、この一時的に有効なスコープでメソッドを定義してしまいます。復習ですがメソッド内の <code>findProtected(this)...</code> という記述はコンストラクタが書き換えられた後でも有効です</p>
+					<p>次に findProtected の参照を継承先の古いコンストラクタに渡す方法ですが、ここで Programmer と Person の間の関係をもう一度考える必要があります。私は Programmer の古いコンストラクタから Person の新しいコンストラクタを呼び出し、findProtected への参照を得ています。この方法自体はトリッキーなものですが、Programmer が Person のメンバを継承していることとはあまり関係ありません。他の全く関係無いコンストラクタが同じ方法を使って findProtected への参照を獲得できてしまうわけです (この関数の起動には引数に Person コンストラクタを通過したインスタンスが必要ですが)。これに対処する方法は色々ありますが、ここでは何もしていません</p>
+					<p>今回はマイナーなテクニックばかりになってしまいました。クロージャの使い方はよく理解しておいて下さい。次節でもクロージャを使ったテクニックを紹介します</p>
+				</div>
+
+				<address>
+					<a class="clsFooterIcon" href="http://validator.w3.org/check/referer"><img src="../../image/valid-xhtml11.png" alt="Valid XHTML 1.1!" width="88" height="31" /></a>
+					&copy; 1999-2003 <a href="mailto:exeal&#64;student.interq.or.jp">exeal</a> &lt;<a href="http://cgi.members.interq.or.jp/student/exeal/cgi-bin/vairya.cgi?">Edit this page</a>&gt;
+				</address>
+			</div>
+		</div>
+	</body>
+
+<!-- SOME SCRIPT SRC'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<!-- SOME LINK HREF'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<SCRIPT language="Javascript">
+<!--
+
+// FILE ARCHIVED ON 20060620154244 AND RETRIEVED FROM THE
+// INTERNET ARCHIVE ON 20110216061814.
+// JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+// ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+// SECTION 108(a)(3)).
+
+   var sWayBackCGI = "http://web.archive.org/web/20060620154244/";
+
+   function xResolveUrl(url) {
+      var image = new Image();
+      image.src = url;
+      return image.src;
+   }
+   function xLateUrl(aCollection, sProp) {
+      var i = 0;
+      for(i = 0; i < aCollection.length; i++) {
+         var url = aCollection[i][sProp];         if (typeof(url) == "string") { 
+          if (url.indexOf("mailto:") == -1 &&
+             url.indexOf("javascript:") == -1
+             && url.length > 0) {
+            if(url.indexOf("http") != 0) {
+                url = xResolveUrl(url);
+            }
+            url = url.replace('.wstub.archive.org','');
+            aCollection[i][sProp] = sWayBackCGI + url;
+         }
+         }
+      }
+   }
+
+   xLateUrl(document.getElementsByTagName("IMG"),"src");
+   xLateUrl(document.getElementsByTagName("A"),"href");
+   xLateUrl(document.getElementsByTagName("AREA"),"href");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"codebase");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"data");
+   xLateUrl(document.getElementsByTagName("APPLET"),"codebase");
+   xLateUrl(document.getElementsByTagName("APPLET"),"archive");
+   xLateUrl(document.getElementsByTagName("EMBED"),"src");
+   xLateUrl(document.getElementsByTagName("BODY"),"background");
+   xLateUrl(document.getElementsByTagName("TD"),"background");
+   xLateUrl(document.getElementsByTagName("INPUT"),"src");
+   var forms = document.getElementsByTagName("FORM");
+   if (forms) {
+       var j = 0;
+       for (j = 0; j < forms.length; j++) {
+              f = forms[j];
+              if (typeof(f.action)  == "string") {
+                 if(typeof(f.method)  == "string") {
+                     if(typeof(f.method) != "post") {
+                        f.action = sWayBackCGI + f.action;
+                     }
+                  }
+              }
+        }
+    }
+
+
+//-->
+</SCRIPT>
+
+</html>

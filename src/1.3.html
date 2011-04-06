@@ -1,0 +1,188 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+	<head>
+<BASE HREF="http://www.interq.or.jp.wstub.archive.org/student/exeal/dss/ejs/1/3.html">
+
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta http-equiv="Content-Style-Type" content="text/css" />
+		<meta http-equiv="Content-Script-Type" content="text/javascript" />
+		<link rev="made" href="mailto:exeal&#64;student.interq.or.jp" />
+		<link rel="contents" href="http://web.archive.org/web/20060701082251/http://www.interq.or.jp/student/exeal/dss/ejs/" />
+		<link rel="start" href="./" />
+		<link rel="next" href="./4.html" />
+		<link rel="prev" href="./2.html" />
+		<link rel="styleSheet" type="text/css" href="../../header/leaf.css" title="Default" />
+		<title>[1.3 クロージャ] Effecttive JavaScript - Dynamic Scripting</title>
+		<script type="text/javascript" src="../../header/main.js"></script>
+	</head>
+	<body>
+		<p id="shortcutToMain"><a href="#mainContent" accesskey="1">本文へジャンプ</a></p>
+		<script type="text/javascript" src="../../header/primary_navigation_bar.js"></script>
+		<div id="root">
+			<script type="text/javascript" src="../../header/secondary_navigation_bar.js"></script>
+			<div id="dir">
+				<a href="./">トップ</a> &gt; <a href="../">Effective JavaScript</a> &gt; <a href="./">1 関数</a> &gt; 1.3 クロージャ
+			</div>
+
+			<div id="mainContent">
+				<h1>1.3 クロージャ</h1>
+
+				<div class="clsSection2">
+					<h2>関数を返す関数</h2>
+					<p>以下が前節の greaterThan 関数を書き直したものです。お察しの通り <code>Function</code> コンストラクタの代わりに関数式を使っています</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> greaterThan(<span class="clsLxrComment">/* number */</span> u) {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">function</span>(n) {
+    <span class="clsLxrKeyword">return</span> n &gt; u;
+  };
+}
+
+<span class="clsLxrComment">// 使う</span>
+<span class="clsLxrKeyword">var</span> arrOriginal = [<span class="clsLxrNum">45</span>, <span class="clsLxrNum">-29</span>, <span class="clsLxrNum">213</span>, <span class="clsLxrNum">99</span>, <span class="clsLxrNum">118</span>];
+filterArray(arrOriginal, greaterThan(<span class="clsLxrNum">50</span>)); <span class="clsLxrComment">// 213,99,118</span>
+					</code></pre>
+					<p>さて、このコードを見てどうでしょうか。「何だか訳が分からない」と思うかもしれません。それもそのはずで、実際に奇妙なことが起こっているのです。関数呼び出しについて次のような手順を考えるとこのコードは動かないような気がします</p>
+					<ol>
+						<li><code>greaterThan(50)</code> とやると引数が1つで、その引数が <code>u</code> より大きければ真を返す関数が作成され、返される</li>
+						<li>filterArray で実際に 1. の戻り値である無名関数が呼び出される</li>
+						<li>無名関数が実行され、<code>n</code> と <code>u</code> が比較される。でも関数 <code>greaterThan</code> のスコープはもう終わっているから <code>u</code> は見つからない???</li>
+					</ol>
+					<p>では <code>Function</code> コンストラクタのときはなぜうまく動き、違和感が無かったのでしょうか。異なる点は外側の引数の埋め込み方です。もう一度前回の greaterThan を見てみましょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> greaterThan(<span class="clsLxrComment">/* number */</span> u) {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">new</span> Function(<span class="clsLxrQuote">"n"</span>, <span class="clsLxrQuote">"return n &gt; "</span> + u + <span class="clsLxrQuote">";"</span>);
+}
+  		</code></pre>
+		<p>ここでは <code>u</code> は文字列に組み込まれ、完成した文字列 (例えば <code>&quot;return n &gt; 50;&quot;</code>) が無名関数の本体になっています。しかし今回作成した関数から返される無名関数はそうではありません。以下のコードを実行すれば分かります</p>
+		<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> f = greaterThan(<span class="clsLxrNum">50</span>);
+f.toString(); <span class="clsLxrComment">// function(n) {</span>
+              <span class="clsLxrComment">//   return n &gt; u;</span>
+              <span class="clsLxrComment">// }</span>
+			  		</code></pre>
+					<p>返された無名関数には確かに <code>u</code> がそのまま残っています。しかし関数のコードそのものには &quot;u&quot; は見当たりません。なぜこれで参照エラーにならないのでしょうか</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>関数+スコープ</h2>
+					<p>実はこのようにして作成された関数は自身を作成した実行フレーム (activation frame) への参照を保持することで、<code>u</code> を可視のまま保っているのです。実行フレームはスコープに入るたびに作成され、そのスコープ中で定義されている全ての限定名とその値というセットの集合を持ちます。そしてスコープが終了しても実行フレームは <em>自身を参照するものがある限りガベージコレクトされません</em>。そしてこの無名関数を <em>クロージャ (closure; 囲まれたもの)</em> というのです (ECMAScript の仕様にはこの言葉は使われていない)</p>
+					<p>他のプログラム言語 (スクリプト以外) から移行してきた人にとっては奇怪千万ですが、JavaScript の強みの一つにこのクロージャが挙げられます。以下は JavaScript 1.5 で private プロパティを実現しようとする、よく見られる例ですがクロージャが理解できれば局所変数がコンストラクタの外でも有効な理由が説明できるでしょう (ここで示す private メンバ実現のアプローチはよく知られているものですが、これは不完全です。私のアプローチは第3章で紹介しましょう)</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(<span class="clsLxrComment">/* string */</span> strName) {
+  <span class="clsLxrKeyword">var</span> m_strName = strName; <span class="clsLxrComment">// private メンバ</span>
+  <span class="clsLxrComment">// ゲッタ</span>
+  Person.prototype.getName = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> m_strName;
+  };
+}
+  				</code></pre>
+
+				<div class="clsSection2">
+					<h2>テクニック &#8212; テンプレート</h2>
+					<p>前項まででクロージャを使って本体の一部だけが異なる関数を作成する方法を説明しました。「一部」とはクロージャから可視な限定子です。一部だけが異なっていてあとは同じというと <a href="./1.html">1.1 引数</a> で紹介した引数型チェックを自動化できるのではないでしょうか</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// 第1引数が T のインスタンスでないと例外を投げる関数を返す関数</span>
+<span class="clsLxrKeyword">function</span> foo(<span class="clsLxrComment">/* constructor */</span> T) {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">function</span>(<span class="clsLxrComment">/* T */</span> n) {
+    <span class="clsLxrKeyword">if</span>(!(n <span class="clsLxrKeyword">instanceof</span> T))
+      <span class="clsLxrKeyword">throw</span> InvalidArgumentError(<span class="clsLxrQuote">"引数の型が合っていません"</span>);
+    <span class="clsLxrComment">// 本処理...</span>
+  };
+}
+
+<span class="clsLxrComment">// 使う</span>
+<span class="clsLxrKeyword">var</span> doSomethingWithDate = foo(Date);
+<span class="clsLxrKeyword">var</span> doSomethingWithNumber = foo(Number);
+
+doSomethingWithDate(<span class="clsLxrKeyword">new</span> Number(<span class="clsLxrNum">7</span>)); <span class="clsLxrComment">// エラー! "引数の型が合っていません"</span>
+doSomethingWithDate(<span class="clsLxrKeyword">new</span> Date());    <span class="clsLxrComment">// ok</span>
+
+doSomethingWithNumber(<span class="clsLxrKeyword">new</span> Number(<span class="clsLxrNum">7</span>)); <span class="clsLxrComment">// ok</span>
+doSomethingWithNumber(<span class="clsLxrKeyword">new</span> Date());    <span class="clsLxrComment">// エラー! "引数の型が合っていません"</span>
+					</code></pre>
+					<p>このように汎用的な関数が書けるようになります。説明していませんでしたが doSomethingWithNumber を作成した後でも doSomethingWithDate は健在です。上書きされる心配はありません。スコープに入るたびに新しい実行フレームが作成されるのでしたね</p>
+					<p>ところでこのようなテクニックは役に立つのでしょうか。確かに上のコードは引数チェックという意味では正しく動作します。しかし &quot;本処理...&quot; の部分には何が書けるか考えてみて下さい。使用例では T が <code>Number</code> と <code>Date</code> となる関数を返しましたが、この関数が数値と日付に対して行いたい汎用的な処理とは何でしょうか。或いはそのような汎用的な処理が可能なのでしょうか</p>
+					<p>私は関数内部の特定の型だけが異なる関数を作成するこのテクニックを勝手に <em>テンプレート (template)</em> と呼んでいますが、JavaScript でテンプレートが有効な場合は非常に限られています。テンプレートは元々型に厳密な C++ の機能ですが JavaScript の変数には型が無く、一度宣言された変数にはどのような型のオブジェクトも格納できます。このため汎用的なプログラミングあまり意味が無いのです</p>
+					<p>しかし型をパラメータとしたクロージャは有用なものです。このテクニックは JavaScript のオブジェクト指向について解説する第3章でもう一度議論します</p>
+				</div>
+
+				<address>
+					<a class="clsFooterIcon" href="http://validator.w3.org/check/referer"><img src="../../image/valid-xhtml11.png" alt="Valid XHTML 1.1!" width="88" height="31" /></a>
+					&copy; 1999-2003 <a href="mailto:exeal&#64;student.interq.or.jp">exeal</a> &lt;<a href="http://cgi.members.interq.or.jp/student/exeal/cgi-bin/vairya.cgi?">Edit this page</a>&gt;
+				</address>
+			</div>
+		</div>
+	</body>
+
+<!-- SOME SCRIPT SRC'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<!-- SOME LINK HREF'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<SCRIPT language="Javascript">
+<!--
+
+// FILE ARCHIVED ON 20060701082251 AND RETRIEVED FROM THE
+// INTERNET ARCHIVE ON 20110216023248.
+// JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+// ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+// SECTION 108(a)(3)).
+
+   var sWayBackCGI = "http://web.archive.org/web/20060701082251/";
+
+   function xResolveUrl(url) {
+      var image = new Image();
+      image.src = url;
+      return image.src;
+   }
+   function xLateUrl(aCollection, sProp) {
+      var i = 0;
+      for(i = 0; i < aCollection.length; i++) {
+         var url = aCollection[i][sProp];         if (typeof(url) == "string") { 
+          if (url.indexOf("mailto:") == -1 &&
+             url.indexOf("javascript:") == -1
+             && url.length > 0) {
+            if(url.indexOf("http") != 0) {
+                url = xResolveUrl(url);
+            }
+            url = url.replace('.wstub.archive.org','');
+            aCollection[i][sProp] = sWayBackCGI + url;
+         }
+         }
+      }
+   }
+
+   xLateUrl(document.getElementsByTagName("IMG"),"src");
+   xLateUrl(document.getElementsByTagName("A"),"href");
+   xLateUrl(document.getElementsByTagName("AREA"),"href");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"codebase");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"data");
+   xLateUrl(document.getElementsByTagName("APPLET"),"codebase");
+   xLateUrl(document.getElementsByTagName("APPLET"),"archive");
+   xLateUrl(document.getElementsByTagName("EMBED"),"src");
+   xLateUrl(document.getElementsByTagName("BODY"),"background");
+   xLateUrl(document.getElementsByTagName("TD"),"background");
+   xLateUrl(document.getElementsByTagName("INPUT"),"src");
+   var forms = document.getElementsByTagName("FORM");
+   if (forms) {
+       var j = 0;
+       for (j = 0; j < forms.length; j++) {
+              f = forms[j];
+              if (typeof(f.action)  == "string") {
+                 if(typeof(f.method)  == "string") {
+                     if(typeof(f.method) != "post") {
+                        f.action = sWayBackCGI + f.action;
+                     }
+                  }
+              }
+        }
+    }
+
+
+//-->
+</SCRIPT>
+
+</html>

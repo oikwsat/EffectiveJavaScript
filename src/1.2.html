@@ -1,0 +1,348 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+	<head>
+<BASE HREF="http://www.interq.or.jp.wstub.archive.org/student/exeal/dss/ejs/1/2.html">
+
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta http-equiv="Content-Style-Type" content="text/css" />
+		<meta http-equiv="Content-Script-Type" content="text/javascript" />
+		<link rev="made" href="mailto:exeal&#64;student.interq.or.jp" />
+		<link rel="contents" href="http://web.archive.org/web/20060701082207/http://www.interq.or.jp/student/exeal/dss/ejs/" />
+		<link rel="start" href="./" />
+		<link rel="next" href="./3.html" />
+		<link rel="prev" href="./1.html" />
+		<link rel="styleSheet" type="text/css" href="../../header/leaf.css" title="Default" />
+		<title>[1.2 関数とオブジェクト] Effecttive JavaScript - Dynamic Scripting</title>
+		<script type="text/javascript" src="../../header/main.js"></script>
+	</head>
+	<body>
+		<p id="shortcutToMain"><a href="#mainContent" accesskey="1">本文へジャンプ</a></p>
+		<script type="text/javascript" src="../../header/primary_navigation_bar.js"></script>
+		<div id="root">
+			<script type="text/javascript" src="../../header/secondary_navigation_bar.js"></script>
+			<div id="dir">
+				<a href="./">トップ</a> &gt; <a href="../">Effective JavaScript</a> &gt; <a href="./">1 関数</a> &gt; 1.2 関数とオブジェクト
+			</div>
+
+			<div id="mainContent">
+				<h1>1.2 関数とオブジェクト</h1>
+				<p>関数という型はありません。JavaScript では関数は呼び出し可能なオブジェクトに過ぎません。逆にオブジェクトであることを利用して、関数に奇妙な振る舞いをさせることができます</p>
+				<p>この節では関数の基本的な定義からスタートし、関数をオブジェクトとして使用する例を幾つか紹介します</p>
+
+				<div class="clsSection2">
+					<h2>無名関数</h2>
+					<p>まず復習から始めましょう。関数はその定義方法から4つに分けることができます</p>
+					<ol>
+						<li><var><a href="../../ref/jscript/statement/function.html#FunctionDeclaration">FunctionDeclaration</a></var> により静的に定義された関数</li>
+						<li><var><a href="../../ref/jscript/statement/function.html#FunctionExpression">FunctionExpression</a></var> により動的に作成された関数</li>
+						<li><code>Function</code> コンストラクタにより動的に作成された関数</li>
+						<li>実装から提供される組み込み関数</li>
+					</ol>
+					<p>とりあえず 4. は無視しましょう。ここで重要なのは 1. から 3. です。最も一般的なのは 1. で、関数の名前、引数リスト、本体で構成される関数の宣言です</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> plus(a, b) {
+  <span class="clsLxrKeyword">return</span> a + b;
+}
+					</code></pre>
+					<p>これだけで十分な気がします。実際、あらゆる静的関数はこれで事足ります。しかし関数を動的に定義したい場合は 2. や 3. の方法が必要になります。<a href="./1.html">1.1 引数</a> の初めで関数はスコープを持つと説明しました。動的に関数が作成できれば、動的にスコープを形成する実行単位を生み出すことができるのです。関数とスコープの関係は <a href="./3.html">1.3 クロージャ</a> で解説するとして、この節では関数のオブジェクトとしての側面について述べます
+					<p>2. や 3. の方法で作成された関数は無名関数になることがあります。無名関数とはその名の通り名前の無い関数です。「関数に名前が無かったらどうやって呼び出すのか分からん」と思われるかもしれませんが、そうではありません。以下は 2. の方法で無名関数を作成する例です</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> plus = <span class="clsLxrKeyword">function</span>(a, b) {
+  <span class="clsLxrKeyword">return</span> a + b;
+};
+					</code></pre>
+					<p>これは先程 1. の方法で作成した関数と同じ引数リスト、本体を持つ関数です。「plus という名前が付けてある」と思われるかもしれませんが、&quot;plus&quot; は関数の名前ではありません。&quot;plus&quot; は無名関数 (オブジェクト) を参照するオブジェクトに過ぎません。「えー、証拠を見せて」という方はこのオブジェクトの文字列表現を見てみましょう。<code>Function::toString</code> は関数のシグニチャと本体を出力するのでしたね</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// 続き</span>
+plus.toString(); <span class="clsLxrComment">// function (a, b) {</span>
+                 <span class="clsLxrComment">// return a + b;</span>
+                 <span class="clsLxrComment">// }</span>
+					</code></pre>
+					<p>確かに名前がありませんね。理論家のあなたには次の説明はどうでしょうか。次のコードが実行されたとき何が起こるか考えてみて下さい</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> plus1, plus2;
+plus1 = plus2 = <span class="clsLxrKeyword">function</span>(a, b) {
+  <span class="clsLxrKeyword">return</span> a + b;
+};
+plus1 == plus2; <span class="clsLxrComment">// true</span>
+					</code></pre>
+					<p>2行目で1つの無名関数に2つの名前を付けようとしています (この方法で名前が付けられるとしたら)。しかし1つの関数に複数の名前を付けることはできません。別々の関数が作成されたと考えるしかありませんが、そうすると5行目は <code>false</code> になるはずです (うーん、変な説明)</p>
+					<p>しかし &quot;plus&quot; という識別子を使ってこの関数を呼び出すことはできるのです。無名関数は JavaScript コード単位の中でも複雑な部類に入ります。例えば Mozilla 付属の JavaScript デバッガ Venkman は無名関数を参照するオブジェクトまでは参照してくれません (これは言語、デバッガ双方の仕様のためで、Venkman に落ち度はありません。またソースを「読ませる」ことである程度は推測してくれます)</p>
+					<p>2. で作成された無名関数に名前をつける方法は <code>function</code> の後に名前を書いてしまうことです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> plus = <span class="clsLxrKeyword">function</span> _plus(a, b) {
+  <span class="clsLxrKeyword">return</span> a + b;
+};
+plus(<span class="clsLxrNum">2</span>, <span class="clsLxrNum">3</span>);  <span class="clsLxrComment">// 5</span>
+_plus(<span class="clsLxrNum">2</span>, <span class="clsLxrNum">3</span>); <span class="clsLxrComment">// JScript 以外はエラー! 理由は後述</span>
+plus == _plus; <span class="clsLxrComment">// JScript では false</span>
+					</code></pre>
+					<p>&quot;_plus&quot; を使って関数呼び出しが成功するのは JScript だけです。結論から言うと JScript の実装が間違っているのです。詳細を述べる前に関数に名前を付けるとはどういうことが考えてみましょう。ECMAScript 3rd Edition には以下のように記述されています</p>
+					<blockquote>
+						<var>FunctionExpression</var> の関数名は再帰呼び出しを可能にするために <var>FunctionExpression</var>
+						の本体から参照できるようになっています。しかし <var>FunctionDeclaration</var> とは異なり、<var>FunctionExpression</var>
+						を囲っているスコープからは参照できず影響を与えることもありません &#8212; ECMAScript 3rd Edition 13 Function Definition (文章は exeal が訳出)
+					</blockquote>
+					<p><var>FunctionDeclaration</var> による静的定義では、関数名は変数オブジェクト (variable object) と呼ばれるオブジェクトのプロパティ名になり、実際の <code>Function</code> オブジェクトはそのプロパティの値になります。これに対して <var>FunctionExpression</var> の場合は変数オブジェクトをその場で作成してスコープチェインの先頭に追加し、このオブジェクトのプロパティとして関数名を与えます。そしてこのオブジェクトの寿命は関数定義の終わりまでです。つまりその関数名は関数の内部からは参照可能ですが、関数定義の外では無効なのです。無名関数に名前を付ける場合はこの点に注意して下さい</p>
+					<p>3. の方法は少々特殊で、仮引数リスト本体を <em>文字列を使って</em> 定義できます。引数はカンマで区切ります</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> plus = <span class="clsLxrKeyword">new Function</span>(<span class="clsLxrQuote">"a, b"</span>, <span class="clsLxrQuote">"return a + b;"</span>);
+plus.toString(); <span class="clsLxrComment">// function anonymous(a, b) {</span>
+                 <span class="clsLxrComment">// return a + b;</span>
+                 <span class="clsLxrComment">// }</span>
+					</code></pre>
+					<p>この場合も &quot;plus&quot; は関数名ではなく、コンストラクタが返したオブジェクトを参照するだけです。面白いことにこの方法で作成された関数の文字列表現には &quot;anonymous&quot; が使用されます。当たり前ですが &quot;anonymous&quot; は関数名でも何でもありません</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>関数オブジェクト</h2>
+					<p>JavaScript の関数を単なる手続き (procedure) と考えないことが重要です。関数が呼び出し可能なオブジェクトに過ぎないことは初めに述べました。オブジェクトであるからには変数に代入したり、実引数として関数に渡したり、関数から返すことができます。或いはオブジェクトのプロパティとすることでメソッドにもなり得ます (3章を見て下さい)。ここでは関数をオブジェクトとして使用したテクニックを幾つか紹介します</p>
+					<p>よく用いられるのは <code>Array::sort</code> メソッドで使用されているテクニックです。このメソッドは省略可能な引数として引数が2つの関数をとります。メソッドは配列の要素を比較する際にこのユーザ定義関数を使って順序を決定するのです。ちょっと使ってみましょう。</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// Array::sort メソッドは、デフォルトでは各要素を文字列とみなして</span>
+<span class="clsLxrComment">// 辞書順にソートする。この関数は大文字小文字を区別せずに辞書順に</span>
+<span class="clsLxrComment">// ソートするために用意した、引数が2つのユーザ定義関数</span>
+<span class="clsLxrKeyword">function</span> fn(a, b) {
+  <span class="clsLxrKeyword">if</span>(a.toLowerCase() == b.toLowerCase())
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">0</span>;
+  <span class="clsLxrKeyword">return</span> (a.toLowerCase() &gt; b.toLowerCase()) ? <span class="clsLxrNum">1</span> : <span class="clsLxrNum">-1</span>;
+}
+
+<span class="clsLxrKeyword">var</span> arr = ["JavaScript", "javascript", "JAVASCRIPT"];
+arr.sort();   <span class="clsLxrComment">// "JAVASCRIPT","JavaScript","javascript"</span>
+arr.sort(fn); <span class="clsLxrComment">// "JavaScript","javascript","JAVASCRIPT"</span>
+
+<span class="clsLxrComment">// 無名関数を使うと以下のようにも書ける</span>
+arr.sort(<span class="clsLxrKeyword">function</span>(a, b) {
+  <span class="clsLxrKeyword">if</span>(a.toLowerCase() == b.toLowerCase())
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">0</span>;
+  <span class="clsLxrKeyword">return</span> (a.toLowerCase() &gt; b.toLowerCase()) ? <span class="clsLxrNum">1</span> : <span class="clsLxrNum">-1</span>;
+});
+					</code></pre>
+					<p>このようなソートを行う関数では要素間の大小 (どちらが先になるか) の定義が必要です。しかしそのルールは無限に存在するため、ルールを表す引数を単一の数値などの単純なもので構成するのは不可能です。その点関数はルールを細かく表現できるので、<code>Array::sort</code> はソート処理の内大小関係を求める部分をユーザ定義関数に委託できるように設計されているのです</p>
+					<p>では例として二分検索を行う関数を考えましょう。この関数は要素の比較をユーザ定義関数に委託します</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// 二分検索 (arr はソート済みとする)</span>
+<span class="clsLxrComment">// 見つかったら true を返す</span>
+<span class="clsLxrKeyword">function</span> binarySearch(<span class="clsLxrComment">/* Array */</span> arr,  <span class="clsLxrComment">// 検索対象配列</span>
+                      <span class="clsLxrComment">/* object */</span> obj, <span class="clsLxrComment">// 検索する値</span>
+                      <span class="clsLxrComment">/* function */</span> fn <span class="clsLxrComment">// ユーザ定義関数</span>
+) {
+  <span class="clsLxrKeyword">var</span> iBottom = <span class="clsLxrNum">0</span>;
+  <span class="clsLxrKeyword">var</span> iTop = arr.length - <span class="clsLxrNum">1</span>;
+  <span class="clsLxrKeyword">while</span>(iBottom &lt;= iTop) {
+    <span class="clsLxrKeyword">var</span> iCenter = Math.floor((iBottom + iTop) / <span class="clsLxrNum">2</span>);
+    <span class="clsLxrKeyword">if</span>(fn(obj, arr[iCenter]) == <span class="clsLxrNum">0</span>)
+      <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">true</span>;
+    <span class="clsLxrKeyword">else if</span>(fn(obj, arr[iCenter]) &lt; <span class="clsLxrNum">0</span>)
+      iBottom = iCenter + <span class="clsLxrNum">1</span>;
+    <span class="clsLxrKeyword">else</span>
+      iTop = iCenter - <span class="clsLxrNum">1</span>;
+  }
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">false</span>;
+}
+
+<span class="clsLxrKeyword">function</span> fn(a, b) {
+  <span class="clsLxrKeyword">if</span>(a == b)
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">0</span>;
+  <span class="clsLxrKeyword">return</span> (a &gt; b) ? <span class="clsLxrNum">1</span> : <span class="clsLxrNum">-1</span>;
+}
+<span class="clsLxrKeyword">var</span> arr = <span class="clsLxrKeyword">new</span> Array(<span class="clsLxrNum">-70</span>, <span class="clsLxrNum">6</span>, <span class="clsLxrNum">113</span>, <span class="clsLxrNum">202</span>);
+
+binarySearch(arr, <span class="clsLxrNum">113</span>, fn);  <span class="clsLxrComment">// true</span>
+binarySearch(arr, <span class="clsLxrNum">-113</span>, fn); <span class="clsLxrComment">// false</span>
+					</code></pre>
+					<p>二分検索は値の大小を使って検索する範囲を徐々に狭め、検索値を探すアルゴリズムです。この内、大小関係の定義を第3引数で与えられたユーザ定義関数に委ねています</p>
+					<p>このような関数を要求するときにはその関数のセマンティクスを正確にドキュメントする必要があります。引数の数、戻り値、再帰関数にしてもよいかなどをどこかに書いておく必要があります</p>
+					<p>以上の例のように関数をパラメータとすることで、処理の一部をクライアントがカスタマイズできるようになります。その利用方法は引数だけではありません。JavaScript で最もよく用いられるのは <acronym title="HyperText Markup Language">HTML</acronym> のイベントハンドラです</p>
+					<pre><code class="clsSample">
+document.body.onload = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrComment">// ドキュメント読み込み完了時の処理</span>
+};
+					</code></pre>
+					<p>他にも特別に関数を要求してくるオブジェクトもあります。典型的なのは Observer パターンです。Observer パターンではオブジェクトの状態が変化したときに、オブザーバと呼ばれる関数やメソッドが呼び出されます。JavaScript は関数をそのまま渡すことができるので簡単に Observer パターンを実装できます (Dynamic Scripting では DSMenu にこのパターンが使われています。ただし単一の関数ではなくインターフェイスを使って実装しています。&lt;<a href="../../res/">リソース</a>&gt;を参照)</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>関数アダプタ</h2>
+					<p>前項で C の関数ポインタのようなことをやりました。となると次は C++ の <em>関数アダプタ (adapter)</em> について考えるとしましょうか</p>
+					<p>関数アダプタは関数ポインタによく似ていますが、関数ではありません。関数アダプタは多重定義された <code>()</code> 演算子を使って、あたかも関数呼び出しをしているかのようにアクセスできるクラス (オブジェクト) です。関数ポインタと違うところは関数ポインタが単なる関数であったのに対して、関数アダプタはオブジェクトです。つまりカプセル化された内部表現を伴っているのです</p>
+					<p>以上は C++ のお話で JavaScript プログラマには分かりにくかったかもしれませんが、心配することはありません。JavaScript の関数は全て C++ の関数アダプタのように機能します。これは JavaScript の関数が全てオブジェクトであることに基づいています。要するにユーザ定義関数の実行中に、その関数のプロパティを参照することができるのです</p>
+					<p>まだ少し分かりにくいですか? では例を見て下さい。以下の関数は先ほど <code>Array::sort</code> メソッドに使用したユーザ定義関数の変形バージョンです。前回は大文字小文字を区別するかどうかという条件をハードコーディングしていましたが、今回はプロパティを使って条件を決定できるようになっています。関数の bIgnoreCase プロパティが真のときは大文字小文字は区別されません。逆に偽のときは区別されます</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> CompareString(a, b) {
+  <span class="clsLxrKeyword">if</span>(CompareString.bIgnoreCase) { <span class="clsLxrComment">// 大文字小文字を区別しない</span>
+    a = a.toLowerCase();
+    b = b.toLowerCase();
+  }
+  <span class="clsLxrKeyword">if</span>(a == b)
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">0</span>
+  <span class="clsLxrKeyword">return</span> (a &gt; b) ? <span class="clsLxrNum">1</span> : <span class="clsLxrNum">-1</span>;
+}
+
+<span class="clsLxrKeyword">var</span> arr = <span class="clsLxrKeyword">new</span> Array(<span class="clsLxrQuote">"b"</span>, <span class="clsLxrQuote">"a"</span>, <span class="clsLxrQuote">"C"</span>);
+CompareString.bIgnoreCase = <span class="clsLxrNum">false</span>;
+arr.sort(CompareString); <span class="clsLxrComment">// "C","a","b"</span>
+CompareString.bIgnoreCase = <span class="clsLxrNum">true</span>;
+arr.sort(CompareString); <span class="clsLxrComment">// "a","b","C"</span>
+					</code></pre>
+					<p>今回は簡単な例だったので少々インチキっぽいですが、それなりに役立つテクニックです。特にオブジェクト内で関数部分の方が小さくなったときに、この関数は <code>()</code> 演算子の多重定義のように振舞います。また、これにより <acronym title="Component Object Model">COM</acronym> の高級クライアントが持つデフォルトメソッドを実現することもできます</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// デフォルトメソッドの簡単な例</span>
+<span class="clsLxrKeyword">function</span> Foo() {
+  <span class="clsLxrKeyword">return</span> Foo.getValue(); <span class="clsLxrComment">// getValue をデフォルトメソッドにする</span>
+}
+
+<span class="clsLxrComment">// Foo オブジェクトの本体はこっち</span>
+Foo.getValue = <span class="clsLxrKeyword">function</span>() {<span class="clsLxrComment">/* ... */</span>};
+Foo.setValue = <span class="clsLxrKeyword">function</span>() {<span class="clsLxrComment">/* ... */</span>};
+<span class="clsLxrComment">// オブジェクトの定義が続く...</span>
+					</code></pre>
+				</div>
+
+				<div class="clsSection2">
+					<h2>関数ポインタと Function コンストラクタの限界</h2>
+					<p>なるほど、<em>関数ポインタ</em> のテクニックは便利なもので、JavaScript プログラマには必須の技術と言えます。この関数ポインタと関数の動的生成を組み合わせると非常に強力であることは誰でも分かります。例えばこのようなものはいかがでしょうか</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// 配列の要素の内、条件に適合したものだけを抽出して</span>
+<span class="clsLxrComment">// 新しい配列を作成する関数</span>
+<span class="clsLxrKeyword">function</span> filterArray(<span class="clsLxrComment">/* Array */</span> arr,  <span class="clsLxrComment">// 元の配列</span>
+                     <span class="clsLxrComment">/* function */</span> fn <span class="clsLxrComment">// ユーザ定義関数</span>
+                                       <span class="clsLxrComment">// 引数は1つで配列の要素。戻り値は</span>
+                                       <span class="clsLxrComment">// その要素を新しい配列に加えるかどうか</span>
+) {
+  <span class="clsLxrKeyword">var</span> arrNew = [];
+  <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; arr.length; ++i) {
+    <span class="clsLxrKeyword">if</span>(fn(arr[i]))
+      arrNew.push(arr[i]);
+  }
+  <span class="clsLxrKeyword">return</span> arrNew;
+}
+					</code></pre>
+					<p>関数 filterArray は条件に適合した要素だけを新しい配列に追加し、その条件はユーザ定義関数により決められます。使い方は次のようになるでしょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> arrOriginal = [<span class="clsLxrNum">45</span>, <span class="clsLxrNum">-29</span>, <span class="clsLxrNum">213</span>, <span class="clsLxrNum">99</span>, <span class="clsLxrNum">118</span>];
+
+<span class="clsLxrComment">// 50 より大きい要素だけを取り出す</span>
+<span class="clsLxrKeyword">function</span> greaterThan50(n) {
+  <span class="clsLxrKeyword">return</span> n &gt; <span class="clsLxrNum">50</span>;
+}
+filterArray(arrOriginal, greaterThan50);  <span class="clsLxrComment">// 213,99,118</span>
+
+<span class="clsLxrComment">// 100 より大きい要素だけを取り出す</span>
+<span class="clsLxrKeyword">function</span> greaterThan100(n) {
+  <span class="clsLxrKeyword">return</span> n &gt; <span class="clsLxrNum">100</span>;
+}
+filterArray(arrOriginal, greaterThan100); <span class="clsLxrComment">// 213,118</span>
+
+<span class="clsLxrComment">// 200 より大きい要素だけを取り出す</span>
+<span class="clsLxrKeyword">function</span> greaterThan200(n) {
+  <span class="clsLxrKeyword">return</span> n &gt; <span class="clsLxrNum">200</span>;
+}
+filterArray(arrOriginal, greaterThan200); <span class="clsLxrComment">// 213</span>
+					</code></pre>
+					<p>まあ、何が言いたいのかすぐに分かると思いますが、条件を変更するたびに関数を作り直すのが面倒なのです。無名関数をそのまま引数に渡せば少し見通しが良くなりますが、根本的には変わりません</p>
+					<p>ここでは3つのユーザ定義関数の性質に共通点があることに注意しましょう。これらの関数はいずれも引数がある数値より大きいかどうかを調べています。この「ある数値」をパラメータとする関数が1つあれば事足りると考えられます。そこで登場するのが <code>Function</code> オブジェクトを返す関数、関数を返す関数です</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> greaterThan(<span class="clsLxrComment">/* number */</span> u) {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">new</span> Function(<span class="clsLxrQuote">"n"</span>, <span class="clsLxrQuote">"return n &gt; "</span> + u + <span class="clsLxrQuote">";"</span>);
+}
+					</code></pre>
+					<p>この関数があれば先ほどのコードは非常に簡単になります</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> arrOriginal = [<span class="clsLxrNum">45</span>, <span class="clsLxrNum">-29</span>, <span class="clsLxrNum">213</span>, <span class="clsLxrNum">99</span>, <span class="clsLxrNum">118</span>];
+
+<span class="clsLxrComment">// 50 より大きい要素だけを取り出す</span>
+filterArray(arrOriginal, greaterThan(<span class="clsLxrNum">50</span>));  <span class="clsLxrComment">// 213,99,118</span>
+
+<span class="clsLxrComment">// 100 より大きい要素だけを取り出す</span>
+filterArray(arrOriginal, greaterThan(<span class="clsLxrNum">100</span>)); <span class="clsLxrComment">// 213,118</span>
+
+<span class="clsLxrComment">// 200 より大きい要素だけを取り出す</span>
+filterArray(arrOriginal, greaterThan(<span class="clsLxrNum">200</span>)); <span class="clsLxrComment">// 213</span>
+					</code></pre>
+					<p>これは素晴らしいテクニックです。この方法を使えば他にも lessThan (より小さい) 、equalTo (等しい) など汎用的な関数をその場で簡単に作成できます</p>
+					<p>しかしこの方法には問題があるのです。まず <code>Function</code> コンストラクタが引数に文字列を要求することです。上の greaterThan 関数を見てもあまり綺麗ではありません。今は単純な例ですが、複雑な条件を記述する関数だとこのままでは厳しいのは明らかです。普通の関数定義と同様に記述できたら良いと思いませんか?</p>
+					<p>「関数を返す関数」という考え方自体は上策と言えます。<code>Function</code> コンストラクタの弱点が明らかになったところで、次の節へ進むとしましょう。次節で議論する「クロージャ」は JavaScript 屈指の強力なテクニックです。クロージャはここでの問題を解決するだけでなく、新しいスクリプト記述とさらに汎用的なプログラミングを可能にします</p>
+				</div>
+
+				<address>
+					<a class="clsFooterIcon" href="http://validator.w3.org/check/referer"><img src="../../image/valid-xhtml11.png" alt="Valid XHTML 1.1!" width="88" height="31" /></a>
+					&copy; 1999-2003 <a href="mailto:exeal&#64;student.interq.or.jp">exeal</a> &lt;<a href="http://cgi.members.interq.or.jp/student/exeal/cgi-bin/vairya.cgi?">Edit this page</a>&gt;
+				</address>
+			</div>
+		</div>
+	</body>
+
+<!-- SOME SCRIPT SRC'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<!-- SOME LINK HREF'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<SCRIPT language="Javascript">
+<!--
+
+// FILE ARCHIVED ON 20060701082207 AND RETRIEVED FROM THE
+// INTERNET ARCHIVE ON 20110216061606.
+// JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+// ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+// SECTION 108(a)(3)).
+
+   var sWayBackCGI = "http://web.archive.org/web/20060701082207/";
+
+   function xResolveUrl(url) {
+      var image = new Image();
+      image.src = url;
+      return image.src;
+   }
+   function xLateUrl(aCollection, sProp) {
+      var i = 0;
+      for(i = 0; i < aCollection.length; i++) {
+         var url = aCollection[i][sProp];         if (typeof(url) == "string") { 
+          if (url.indexOf("mailto:") == -1 &&
+             url.indexOf("javascript:") == -1
+             && url.length > 0) {
+            if(url.indexOf("http") != 0) {
+                url = xResolveUrl(url);
+            }
+            url = url.replace('.wstub.archive.org','');
+            aCollection[i][sProp] = sWayBackCGI + url;
+         }
+         }
+      }
+   }
+
+   xLateUrl(document.getElementsByTagName("IMG"),"src");
+   xLateUrl(document.getElementsByTagName("A"),"href");
+   xLateUrl(document.getElementsByTagName("AREA"),"href");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"codebase");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"data");
+   xLateUrl(document.getElementsByTagName("APPLET"),"codebase");
+   xLateUrl(document.getElementsByTagName("APPLET"),"archive");
+   xLateUrl(document.getElementsByTagName("EMBED"),"src");
+   xLateUrl(document.getElementsByTagName("BODY"),"background");
+   xLateUrl(document.getElementsByTagName("TD"),"background");
+   xLateUrl(document.getElementsByTagName("INPUT"),"src");
+   var forms = document.getElementsByTagName("FORM");
+   if (forms) {
+       var j = 0;
+       for (j = 0; j < forms.length; j++) {
+              f = forms[j];
+              if (typeof(f.action)  == "string") {
+                 if(typeof(f.method)  == "string") {
+                     if(typeof(f.method) != "post") {
+                        f.action = sWayBackCGI + f.action;
+                     }
+                  }
+              }
+        }
+    }
+
+
+//-->
+</SCRIPT>
+
+</html>

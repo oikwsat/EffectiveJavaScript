@@ -1,0 +1,1835 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+    <link rev="made" href="mailto:exeal&#64;student.interq.or.jp" />
+    <link rel="styleSheet" type="text/css" href="leaf.css" title="Default" />
+    <title>Effective JavaScript - Dynamic Scripting</title>
+  </head>
+  <body>
+    <div id="mainContent">
+      <h1>Effective JavaScript<br /><small><i>A Few</i> Ways to Improve Your JavaScript</small></h1>
+      <p><strong>Effective JavaScript</strong> は JScript 、JavaScript 、ECMAScript による効果的なスクリプトの構築方法を解説するものです</p>
+
+      <h2>目次</h2>
+      <ul class="clsNoStar">
+        <li>0 序章
+          <ol>
+            <li><a href="#p0_1">はじめに</a></li>
+            <li><a href="#p0_2">表記法</a></li>
+          </ol>
+        </li>
+        <li>1 関数
+          <ol>
+            <li><a href="#p1_1">引数</a> - デフォルト引数、正当性チェック、残余引数、オーバーロード</li>
+            <li><a href="#p1_2">関数とオブジェクト</a> - 無名関数、関数オブジェクト、関数アダプタ</li>
+            <li><a href="#p1_3">クロージャ</a> - 無名関数を返す関数</li>
+            <li><a href="#p1_4">関数の変形</a> - 関数の合成、引数の束縛、引数の加工</li>
+          </ol>
+        </li>
+        <li>2 例外</li>
+        <li>3 オブジェクト
+          <ol>
+            <li><a href="#p3_1">プロパティとメソッド</a> - 基本的な話</li>
+            <li><a href="#p3_2">コンストラクタとプロトタイプ</a> - コンストラクタ、メソッドの定義、プロトタイプによる継承</li>
+            <li><a href="#p3_3">アクセスレベル</a> - 非公開メンバ、限定公開メンバ実現のアプローチ</li>
+          </ol>
+        </li>
+      </ul>
+
+      <div id="p0_1">
+        <h1>0.1 はじめに</h1>
+        <p>Dynamic Scripting の JScript リファレンス では JScript 、JavaScript 、ECMAScript の仕様、標準を解説しています。しかし仕様書やリファレンスだけでスクリプトを書くプログラマなどいません。<strong>Effective JavaScript</strong> は効果的 (effective) で強力 (dynamic) なスクリプトの作成方法を紹介することにより、より高度な技術の解説を行います</p>
+
+        <div class="clsSection2">
+          <h2>考え方</h2>
+          <p>基礎的な技術で強力なスクリプトを書くことを目的としているので、純粋に言語だけの解説に集中しています。私は色々考えた末 <acronym title="HyperText Markup Language">HTML</acronym> と <acronym title="Document Object Model">DOM</acronym> をチュートリアルから外しました。既存の JavaScript のチュートリアルには HTML や DOM-0 と絡められているものもありますが、言語と周辺技術の区別が付きにくくなる傾向があります。<strong>Effective JavaScript</strong> で解説するテクニックはこれらの周辺技術と独立に存在するもので、Web ページで JavaScript を使用する場合にも役立ちます</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>使用する JavaScript</h2>
+          <p>例外を扱うため JScript 5.6 、JavaScript 1.5 (Mozilla 1) 、ECMAScript 3rd Edition を前提にしています</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>対象読者</h2>
+          <p>あなたは JScript 、JavaScript について知っている必要があります。ここでは「ブラウザのステータスバーに文字列を流す方法」や「配列オブジェクトの扱い方」といった解説はありません。ECMA-262 やスクリプトエンジンの実装について精通している必要はありませんが、ある程度の知識はあるものとします</p>
+          <p>もしあなたが「自分は中級者だ」と思っているなら問題ありません</p>
+        </div>
+      </div>
+
+      <div id="p0_2">
+        <h1>0.2 表記法</h1>
+        <p><strong>Effective JavaScript</strong> で使用する表記法と約束事について</p>
+
+        <div class="clsSection2">
+          <h2>表記法</h2>
+
+          <div class="clsSection3">
+            <h3>限定子</h3>
+            <p>例えば <code>String</code> というクラスに <code>concat</code> というメンバがある場合に、このメンバを指すつもりで単に <code>concat</code> としても、他のクラスに同名のメンバがあればどれを指しているのか分からなくなります。他の言語で一般に使用されている <em>限定子</em> (ドキュメントなどに使用する &quot;表記&quot; に過ぎないので、コード中では使えない場合がある) としては C/C++ や Perl では <code>String::concat</code> 、Java では <code>String.concat</code> などどします</p>
+            <p>JavaScript のメンバは元々配置箇所があいまいで、あるオブジェクトのメンバを他のオブジェクトのメンバとして使用することもできます。そのため JavaScript には限定子のある程度定着した表記法がありません。このチュートリアルでは C/C++ や Perl と同じように2つのコロン (<code>::</code>) をメンバの限定に使用します。Java と同じ表記を避けたのは JavaScript にプロトタイプという厄介なものがあるからです</p>
+          </div>
+
+          <div class="clsSection3">
+            <h3>プログラマ、クライアント、ユーザ、ゲスト</h3>
+            <p><em>プログラマ</em> とは職種ではなく、単にスクリプトを書く人間を指します。<em>クライアント</em> はプログラマが記述したコードをスクリプトレベルで利用する側です。人間とは限らず、オブジェクトや関数である場合もあります。<em>ユーザ</em> は出来上がったアプリケーションの使用者です。最後に <em>ゲスト</em> は Web ページ (<acronym title="eXtensible Markup Language">XML</acronym> 含む) の訪問者を意味します</p>
+          </div>
+
+          <div class="clsSection3">
+            <h3>クラス、オブジェクト、インスタンス、インターフェイス</h3>
+            <p>JavaScript には <em>クラス</em> がありません (内部原理としては存在します)。クラスと (特に組み込みの) オブジェクトを混同しないようにして下さい。クラスはオブジェクトのテンプレート (雛形) のようなもので、オブジェクトの共通の性質や挙動を定義します。ただ、クラスをコードレベルで定義、参照することはできません</p>
+            <p><strong>Effective JavaScript</strong> で <em>オブジェクト</em> と書いてあるのは、他のオブジェクト指向言語での意味と同じです。オブジェクト事態の意味については該当項を参照して下さい</p>
+            <p><em>インスタンス</em> はオブジェクトとほとんど同じ意味です。ただ、インスタンスの方がより具象的です</p>
+            <p><em>インターフェイス</em> は JavaScript の仕様にはありません。インターフェイスはオブジェクトの持つ (実装を含まない) メソッド定義の集合のようなものです。JavaScript においてインターフェイスは重要であるため、この語を使用することがあります</p>
+          </div>
+
+          <div class="clsSection3">
+            <h3>静的メンバ、インスタンスメンバ、クラスメンバ</h3>
+            <p>該当項参照。<em>インスタンスメンバ</em> は通常のメンバで、個々のインスタンスが独立に保持するメンバを指します。対して <em>クラスメンバ</em> はコンストラクタが直接保持しているメンバです (JavaScript はオブジェクト生成機構という意味でコンストラクタをクラス定義として捉えることがある) 。<strong>Effective JavaScript</strong> ではクラスメンバを <em>静的メンバ</em> とも記述します</p>
+          </div>
+
+          <div class="clsSection3">
+            <h3>汎用メソッド、非汎用メソッド</h3>
+            <p>JavaScript ではメソッドとオブジェクトから抽出したり、他のオブジェクトに結び付けたりできます。ECMAScript の仕様ではこのようなほかのオブジェクトを解して呼び出すことが可能なメソッドを <em>汎用</em> (generic; 訳語は私が訳出) メソッドとしています。逆に呼び出すことのできないものを <em>非汎用</em> メソッドと記述します。これらのメソッドはコードレベルで定義することができます</p>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- 1.1 引数 -->
+      <div id="p1_1">
+        <h1>1.1 引数</h1>
+        <p>最初の話題が関数であることについて変に感じられるかもしれません。基本的なことを論じるにしても、高度で変態的なテクニックを扱うにもしても、最初のトピックが関数だと拍子抜けかもしれません。しかし関数 (と呼ぶべきもの) は JavaScript の中核となっている要素なのです</p>
+        <p>JavaScript にはスコープが2つしか (実際は3つですが) ありません。関数の外側と内側です。これらのスコープは入れ子にでき、外側のスコープからは内側がどうなっているのか分かりません。しかし、JavaScript のスコープはたったこれだけなのです。JavaScript でクラスもどきを定義する方法に代表される隠しテクニックはこの単純な仕組みを利用したものが多いのです。そのため、何が可能で何が不可能なのかを見極めるためには、JavaScript の奇妙な関数の仕組みについて理解しておかなければならないのです。関数を使ったテクニックは後々紹介するとして、本節では関数の基本事項について述べます。まずは引数です</p>
+
+        <div class="clsSection2">
+          <h2>値渡しと参照渡し</h2>
+          <p>関数の呼び出し側がどのように引数を渡すか考えて下さい。引数が関数に渡されるとき、あなたが引数にセットした値は <em>概念的には</em> スコープを飛び越えることになります。しかし実引数がプリミティブ値の場合、実際にはそのようなことは起こりません。関数側が受け取るのは渡されたもののコピーです。これが <em>値渡し</em> です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> hoge(v) {
+  v = <span class="clsLxrNum">0</span>;
+}
+
+<span class="clsLxrKeyword">var</span> n = <span class="clsLxrNum">100</span>;
+hoge(n);
+n; <span class="clsLxrComment">// 100 のまま</span>
+          </code></pre>
+          <p>この例で v は呼び出し側の n のコピーになります。つまり値が同じになるだけで、因果関係は全くありません。関数側で値が変更されても呼び出し側の変数には何の影響もありません</p>
+          <p>オブジェクトを渡すときには <em>参照渡し</em> が行われます。関数側が受け取るオブジェクトは呼び出し側のオブジェクトを参照します。この場合は関数側でオブジェクトを変更すると呼び出し側のオブジェクトも影響を受けます。このとき「いや、やっぱり呼び出し側のオブジェクトは変更されないじゃないか」と言って次のようなコードを書く人がいるかもしれません</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> hoge(o) {
+  o = <span class="clsLxrKeyword">new</span> Object();
+}
+
+<span class="clsLxrKeyword">var</span> o = <span class="clsLxrKeyword">new</span> Object();
+o.p = <span class="clsLxrNum">100</span>;
+hoge(o);
+o.p; <span class="clsLxrComment">// o.p は 100 のままだ...</span>
+          </code></pre>
+          <p>これは、関数 hoge はオブジェクトを変更して <em>いない</em> のです。hoge の1行目で何が行われるか考えましょう。まず <code>new</code> で全く新しいオブジェクトを作成します。この時点では o には呼び出し側のオブジェクトを参照しています。しかし <code>=</code> 演算子が使われていることにより関数内の o の参照先が変わってしまうのです。元のオブジェクトは呼び出し元の o から依然として参照されているのでガベージコレクトが起こることはありませんが、これ以降の o に対する変更は呼び出し元には影響しなくなるのです。結果として外の o.p は値が変化しなかったのです。次のように書き直すと参照渡しが行われていることを確認できます。関数側はオブジェクトを <em>変更している</em> のです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> hoge(o) {
+  o.p = <span class="clsLxrNum">0</span>;
+}
+
+<span class="clsLxrKeyword">var</span> o = <span class="clsLxrKeyword">new</span> Object();
+o.p = <span class="clsLxrNum">100</span>;
+hoge(o);
+o.p; <span class="clsLxrComment">// o.p は 0 に変更されている!</span>
+          </code></pre>
+          <p>参照渡しが存在する理由の1つは効率です。プリミティブでない値 (複雑な値; オブジェクト) は複数のプロパティを持っており、それを全てコピーしていたら非常に効率が悪くなります。そのためオブジェクトの存在する位置だけを関数に教え、関数はその位置情報を使って必要に応じてオブジェクトにアクセスします。2つ目の理由は呼び出し先での変更を呼び出し元に影響させることです。JavaScript のネイティブオブジェクトが持つメソッドには引数を変更するものはほとんどありませんが、これは非常に有用な手段です</p>
+          <p>JavaScript では実引数が単純であれば値渡しが、複雑であれば参照渡しが使用されます。VBScript では関数定義がこれを指定することができますが、JavaScript では実引数の値をスクリプトエンジンが調べて勝手に決定します。JavaScript の仮引数には型を指定することができないため、関数定義側はその引数がどちらの方法で渡されているか静的には分かりません。これを解決するのが次項の実引数の扱いに関するテクニックです</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>仮引数と実引数</h2>
+          <p>JavaScript では、仮引数リストの長さと異なる数の実引数を関数に渡してもスクリプトエンジンは文句を言いません。関数が呼び出されると実引数はその位置に応じて当該仮引数に割り当てられます (引数の渡し方はさっき説明しました)。実引数が足りないと割り当てられなかった各仮引数には <code>undefined</code> が設定され、逆に実引数係引数に比べて多いと、余りは無視されてしまいます</p>
+          <p>無視されるといっても値が完全に棄てられる訳ではありません。このような状況でも実引数を参照できるように ECMAScript は <code><a href="../../ref/jscript/object/arguments.html">arguments</a></code> を関数の局所変数として定義するようにしています。実引数はこの配列のようなオブジェクトのプロパティとして保持されます。仮引数 (parameters) が静的なものであるのに対し、実引数 (arguments) は関数の呼び出しが行われるまでどのようになるか分かりません。この特性を利用すると非常に興味深い関数を記述できるようになります</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>引数の省略</h2>
+          <p>ECMAScript では仮引数に対応する実引数が与えられなかった場合は、その仮引数が <code>undefined</code> にセットされることになっています。このことから、実引数を調べてそれが省略されているかどうか確認することができ、他の幾つかの言語で採用されている <em>引数の省略</em> がエミュレートできるのです。引数の省略とは指定した引数を関数呼び出し時に省略することを認め、その仮引数にあらかじめ決めておいた値をセットするするというものです</p>
+          <p>例えば文字列をディスプレイに出力する関数を考えましょう。あなたはロケールのことも考えて第2引数に文字列を左から右に書くのか、右から左に書くのかを指定できるブール値を設けることにしました</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr) { <span class="clsLxrComment">// bLtr が true であれば左から右</span>
+  <span class="clsLxrComment">// ...</span>
+}
+    </code></pre>
+          <p>実際にこの関数を使っていると、あることに気が付きます。bLtr に <code>true</code> をセットすることの方が圧倒的に多いのです。呼び出しの度に第2引数を書くのは面倒です。しかし、右から左に読むロケールが存在することを考えると仮引数を削ってしまうのも気が進まないことです。このような場合に第2引数を省略したらそれを <code>true</code> とみなす、ようなことが実現できたら便利だと思いませんか? これをやってみたのが以下に示すコードです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr) { <span class="clsLxrComment">// bLtr が true であれば左から右</span>
+  <span class="clsLxrKeyword">if</span>(bLtr == <span class="clsLxrNum">undefined</span>) <span class="clsLxrComment">// bLtr が省略されていたら</span>
+    bLtr = <span class="clsLxrNum">true</span>;        <span class="clsLxrComment">// true として処理を進める</span>
+  <span class="clsLxrComment">// ...</span>
+}
+
+outputStringToDisplay(<span class="clsLxrQuote">"Effective JavaScript"</span>, <span class="clsLxrNum">true</span>); <span class="clsLxrComment">// 左から右</span>
+outputStringToDisplay(<span class="clsLxrQuote">"Effective JavaScript"</span>);       <span class="clsLxrComment">// これも同じ</span>
+          </code></pre>
+          <p>省略されたかどうかを調べるときに <code>if(!bLtr)</code> のような書き方はできません．これだと <code>false</code> や 0 を指定したときも省略されたと勘違いしてしまいます．逆に <code>undefined</code> が引数として正当である場合にも注意して下さい</p>
+          <p>この方法は中々役立つものですが、クライアントは引数が省略を許すかどうか、そのデフォルト値が何なのかをどうやって知るのでしょうか．これにはコメントを使用します</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr <span class="clsLxrComment">/* = true */</span>)
+          </code></pre>
+          <p>デフォルト値には普通定数を使用します</p>
+          <p>省略可能な引数は <em>後方から連続しているものだけ</em> です．例えば次の内1番目のものは問題ありませんが、2番目のものは実現できません (エラーになるわけではありませんがあなたの思った通りには動きません)</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo(a, b, c <span class="clsLxrComment">/* = 1 */</span>, d <span class="clsLxrComment">/* = 2 */</span>) {}
+<span class="clsLxrKeyword">function</span> bar(a, b <span class="clsLxrComment">/* = 1 */</span>, c, d <span class="clsLxrComment">/* = 2 */</span>) {}
+
+foo(<span class="clsLxrNum">100</span>, <span class="clsLxrNum">200</span>); <span class="clsLxrComment">ok。省略可能な c と d を省略している</span>
+bar(<span class="clsLxrNum">100</span>, <span class="clsLxrNum">200</span>); <span class="clsLxrComment">駄目。省略不可能な c を省略している!</span>
+          </code></pre>
+          <p>省略可能な引数のテクニックは ECMAScript のネイティブメソッドにも使用されています</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>引数チェック</h2>
+          <p>前項でクライアントが渡してきた実引数が <code>undefined</code> であるかどうか調べました。このようなテクニックを使っていると実引数の正当性が重要になってきます。JavaScript の緩いセマンティクスにより、クライアントは仮引数リストとは異なる実引数リストを使って関数を呼び出すことができます。更に引数の型について関数は何も指定できません。前項の outputStringToDisplay 関数は第1引数を文字列、第2引数をブール値として処理を行おうとしますが、実際にはこれと異なる型の引数が渡される可能性があるのです。<code>string</code> と <code>boolean</code> オブジェクトはオブジェクトではないため、この関数はそれ程深刻な状況を生み出さないでしょう。第1引数にオブジェクトを渡すと、第1引数を文字列として扱うコンテキストでは <code>toString</code> メソッドが呼び出され、大事に至ることはありません。実際にディスプレイに出力された文字列を見てクライアントは「変な文字列がプリントされてしまった。あの関数の第1引数を間違えたかな?」と思うぐらいで特に深刻なエラーが発生するわけではありません</p>
+          <p>しかし引数がオブジェクトを要求していたら大変です。関数はそのオブジェクトのメソッドを呼び出そうとしたときに、オブジェクトが実は違うオブジェクトだったら、或いはプリミティブ値だったら一発でエラーになります。ここで問題なのはエラーになることではなく、間違った引数が与えられたということなのです。引数が正しいか調べるには前項と同じように関数の先頭で処理を行う必要があります</p>
+          <p>現実問題として、関数内でエラーが発生したときにこの種の引数チェックを使用しておくと、エラーの責任をクライアントに付き返したり、関数のセマンティクスをクライアントに通知できるようになります．関数の引数チェックに失敗したときにクライアントに対して「そりゃ、君の渡してきた実引数に変なものが混じっているからだよ。」と言うことができるのです。これは契約の理論ですが、契約についてはまた後で述べることにしましょう</p>
+          <p>引数の正当性を構成するのは以下の3つです</p>
+          <ul>
+            <li>数が合っているか</li>
+            <li>各引数の型が正しいか</li>
+            <li>各引数の値が有効なものか</li>
+          </ul>
+          <p>この3つの正当性を評価するのは大して難しくありません。まず引数リストの長さですが、これは1行で片が付きます</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo(a, b) {
+  <span class="clsLxrKeyword">if</span>(arguments.callee.length != arguments.length)
+    <span class="clsLxrComment">// そりゃ、君の渡してきた...</span>
+}
+
+<span class="clsLxrKeyword">function</span> bar(a, b, c <span class="clsLxrComment">/* = 0 */</span>) {
+  <span class="clsLxrKeyword">if</span>(arguments.callee.length &gt; arguments.length
+  　　|| arguments.callee.length - <span class="clsLxrNum">1</span> &lt; arguments.length)
+    <span class="clsLxrComment">// そりゃ、君の渡してきた...</span>
+}
+          </code></pre>
+          <p>次に引数の型のチェックですがこれも簡単です。<code>typeof</code> 演算子と <code>instanceof</code> 演算子を使うだけです。ただし、目的の型とそのセマンティクスによりチェックの仕方が少し異なります</p>
+          <p>まずプリミティブ型を要求する引数の型チェックをやってみましょう．この場合は <code>typeof</code> 演算子を使うだけです。outputStringToDisplay 関数では次のようになるでしょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr <span class="clsLxrComment">/* = true */</span>) {
+  <span class="clsLxrKeyword">if</span>(<strong>typeof</strong>(str) != <span class="clsLxrQuote">"string"</span>)
+    <span class="clsLxrComment">// 第1引数は文字列でないと駄目 -> エラー!</span>
+  <span class="clsLxrKeyword">if</span>(<strong>typeof</strong>(bLtr) != <span class="clsLxrQuote">"boolean"</span>)
+    <span class="clsLxrComment">// 第2引数はブール値でないと駄目 -> エラー!</span>
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+          </code></pre>
+          <p>しかしこのままでチェックが厳しすぎると思うかもしれません。「<code>String</code> とか <code>Boolean</code> オブジェクトを許容してもいいんじゃないか。JavaScript のオブジェクトは全部 <code>toString</code> メソッドを持っているし、これも文字列として扱えるだろう。」その通りです。JavaScript のオブジェクトは設計上の理由からプリミティブ値への変換も持つものが多いのです。しかし大抵の変換は自動的に行われるので、予期しない変換が起こることがあります．対応するプリミティブ型が存在するオブジェクト (<code>Boolean</code> 、<code>Number</code> 、<code>String</code>) はコンストラクタを関数として呼び出すことによりプリミティブ値を取り出すことができます</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr <span class="clsLxrComment">/* = true */</span>) {
+  str = String(str);    <span class="clsLxrComment">// str が何であろうとプリミティブな string 型に変換</span>
+  bLtr = Boolean(bLtr); <span class="clsLxrComment">// bLtr が何であろうとプリミティブな boolean 型に変換</span>
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+          </code></pre>
+          <p>これはシンプルな方法で、何をやろうとしているかすぐに分かります。いずれも ECMAScript で定められた型変換規則に従って変換が行われるのです。ただし何でも変換してしまうのでエラーを出す場所がありません。1番目の方法と2番目の方法のどちらを使うかは、その関数の意味で変わってきます。より厳密ながたチェックが必要な場合は前者を、そうでない場合は後者を選んで下さい</p>
+          <p>引数がオブジェクトを要求してくる場合は <code>instanceof</code> 演算子を使用します。事前に <code>typeof</code> でオブジェクトかどうか調べる必要はありません。次の例は <code>Date</code> オブジェクトを使って何かする関数です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> useDate(oDate) {
+  <span class="clsLxrKeyword">if</span>(!(oDate <strong>instanceof</strong> Date))
+    <span class="clsLxrComment">// 第1引数は Date オブジェクトでないと駄目 -> エラー!</span>
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+          </code></pre>
+          <p>「ん? <code>Date</code> の派生オブジェクトでもこの関数は通してくれるのかな?」通ります。<code>Date</code> の派生オブジェクトは <code>Date</code> インスタンスでもあります。<code>instanceof</code> 演算子はオブジェクトのプロトタイプチェインを辿り、<code>Date</code> を見つけ出すのです</p>
+          <p>逆に <code>Date</code> オブジェクトしか認めない場合 (無意味な気がしますが) は <code>constructor</code> プロパティでそのオブジェクトのコンストラクタを調べます</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> useDate(oDate) {
+  <span class="clsLxrKeyword">if</span>(!oDate.constructor || oDate.constructor != Date)
+    <span class="clsLxrComment">// 第1引数は Date オブジェクトでないと駄目 -> エラー!</span>
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+          </code></pre>
+          <p>引数がオブジェクトである場合の問題については他の章でもう一度議論します</p>
+          <p>引数の型をコメントとして書き込むには以下の形式を使用すると良いでしょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> useDate(<span class="clsLxrComment">/* Date */</span> oDate)
+          </code></pre>
+          <p>最後は引数の値の正当性です。これは厄介というか面倒です。引数の値として何が正しいかは関数によって異なり、決まった方法がないのです。ここでは例を挙げるだけにしておきましょう</p>
+          <p>文字列から部分文字列を検索する関数を考えましょう。JavaScript のネイティブオブジェクトには、既に文字列検索のための関数がありますが、まあ、あなたはこの関数を作ったのです。引数リストは次のようになるでしょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> searchString(<span class="clsLxrComment">/* string */</span> strTarget,    <span class="clsLxrComment">// 検索対象</span>
+                      <span class="clsLxrComment">/* string */</span> strSubstring, <span class="clsLxrComment">// 検索する文字列</span>
+                      <span class="clsLxrComment">/* number */</span> iBegin        <span class="clsLxrComment">// 検索開始位置</span>
+) {
+  <span class="clsLxrComment">// 本処理...</span>
+}
+
+<span class="clsLxrComment">// 使う</span>
+searchString(<span class="clsLxrQuote">"Effective JavaScript"</span>, <span class="clsLxrQuote">"Script"</span>, <span class="clsLxrNum">7</span>);
+          </code></pre>
+          <p>仮引数リストを眺めていると、引数として不当な値がすぐに思いつきます</p>
+          <ul>
+            <li>strTarget 空文字列だったら検索する意味は無い</li>
+            <li>strSubstring が空文字列だったら検索する意味は無い</li>
+            <li>strTarget の文字列長が strSubstring の文字列長より短かったら検索する意味は無い</li>
+            <li>strTarget の文字列長が iBegin 以下だったら検索する意味は無い</li>
+          </ul>
+          <p>同時に次のようなことも思いつきます</p>
+          <ul>
+            <li>iBegin が負数だったらどう扱えばよいか</li>
+            <li>iBegin が小数だったらどう扱えばよいか</li>
+            <li>「検索する意味が無い」とはエラーを意味するか</li>
+          </ul>
+          <p>後で出てきた3つの疑問については決まった正解というものがありません。これらを決定するのは関数の作者なのです。<code>String</code> オブジェクトの文字列検索メソッドは変な引数を渡してもエラーになりませんが、この関数はもっと厳密なものにしてみましょう。上で挙げた事例を全てエラーとして処理するものとします</p>
+          <p>しかしその前に、「関数がエラーを出す」とはどういうことでしょうか。いままで幾つかの項で「エラーを出す」と言ってきましたが、コード中ではコメントを書いただけでした。実はこのエラー定義も関数作者の仕事なのです</p>
+          <p>一般的には例外を使用します。ただ例外は最近採り入れられたもので、対応していないスクリプトエンジンは例外処理を見つけると、逆にエラーを発生させてしまうのです。この <strong>Effective JavaScript</strong> は ECMAScript 3rd Edition を前提としているので、堂々と例外を使ったコードが書けますが、クロスブラウザを考慮したコードには使用できないことに注意して下さい (例外については該当章を参照)</p>
+          <p>では例外を使って searchString を書いてみましょう。ここでは <code>Error</code> オブジェクトを使いますが、エラーに応じた <code>NativeError</code> オブジェクトでも構いません</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> searchString(<span class="clsLxrComment">/* string */</span> strTarget,    <span class="clsLxrComment">// 検索対象</span>
+                      <span class="clsLxrComment">/* string */</span> strSubstring, <span class="clsLxrComment">// 検索する文字列</span>
+                      <span class="clsLxrComment">/* number */</span> iBegin        <span class="clsLxrComment">// 検索開始位置</span>
+) {
+  <span class="clsLxrComment">// 実引数の数のチェック</span>
+  <span class="clsLxrKeyword">if</span>(arguments.callee.length != arguments.length)
+    <span class="clsLxrKeyword">throw</span> Error(<span class="clsLxrQuote">"引数の数が合っていません"</span>);
+
+  <span class="clsLxrComment">// 型チェックはプリミティブ値につき手抜き</span>
+  strTarget = String(strTarget);
+  strSubstring = String(strSubstring);
+  iBegin = Number(iBegin); <span class="clsLxrComment">// NaN になる可能性もあるが...</span>
+
+  <span class="clsLxrComment">// 空文字列は駄目</span>
+  <span class="clsLxrKeyword">if</span>(strTarget.length == <span class="clsLxrNum">0</span> || strSubstring.length == <span class="clsLxrNum">0</span>)
+    <span class="clsLxrKeyword">throw</span> Error(<span class="clsLxrQuote">"空文字列は検索に使用できません"</span>);
+
+  <span class="clsLxrComment">// 小数や負数は使えない</span>
+  <span class="clsLxrKeyword">if</span>(iBegin &lt; <span class="clsLxrNum">0</span> || iBegin % 1 != <span class="clsLxrNum">0</span>)
+    <span class="clsLxrKeyword">throw</span> Error(<span class="clsLxrQuote">"検索開始位置に負数や小数は使用できません"</span>);
+
+  <span class="clsLxrComment">// strTarget が短い</span>
+  <span class="clsLxrKeyword">if</span>(strTarget.length &lt; strSubstring || strTarget.length &lt;= iBegin)
+    <span class="clsLxrKeyword">throw</span> Error(<span class="clsLxrQuote">"検索文字列長か開始位置が検索対象文字列長に比べて大きすぎます"</span>);
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+          </code></pre>
+          <p>冗長な気もしますが、こういう方法があるということです</p>
+          <p><code>NativeError</code> オブジェクトの話が出ましたが、ECMAScript には関数に不適切な引数を渡したときに使用する専用の例外オブジェクトが用意されていません。つまり ECMAScript では引数チェックはあまり問題ではないというのが普通の考え方なのです。ECMAScript の仕様を鵜呑みにするならこのままで構いませんが、折角引数チェックの議論を行ったので例外オブジェクトを作成することにしましょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> InvalidArgumentError(message) {
+  <span class="clsLxrKeyword">var</span> e = <span class="clsLxrKeyword">new</span> Error(message);
+  e.name = <span class="clsLxrQuote">"InvalidArgumentError"</span>;
+  <span class="clsLxrKeyword">return</span> e;
+}
+          </code></pre>
+          <p>「例外オブジェクトとか言ってこりゃただの関数だ」と思われるかもしれません。関数はオブジェクトですがそういう意味ではないですね。この奇妙なアプローチについては例外の章を見て下さい。何はともあれ、実際に例外を投げるには以下のようにします</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">if</span>(<span class="clsLxrComment">/* 引数チェック */</span>)
+  <span class="clsLxrKeyword">throw</span> InvalidArgumentError(<span class="clsLxrComment">/* エラーの説明 */</span>);
+          </code></pre>
+        </div>
+
+        <div class="clsSection2">
+          <h2>テクニック &#8212; 残余引数</h2>
+          <p><em>残余引数 (rest parameter)</em> とは対応する仮引数リストが無く、残りものになった実引数を扱う機能で、幾つかの言語で使用されています。これにより可変長引数が実現できますが、JavaScript では引数リストは元々可変長であり、簡単に模倣できます。役に立つかはともかく方法を紹介しましょう</p>
+          <p>実引数が <code>arguments</code> に格納されことは前に述べたとおりです。残余引数 (と勝手に思っているもの) にアクセスするにはこの <code>arguments</code> オブジェクトに添え字を使ってアクセスするだけです。これでは簡単すぎるので残余引数だけを格納したリスト (実際はこのリスト全体を残余引数という) を作成するとしましょう。これも簡単です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo(a, b <span class="clsLxrComment">/* , ... */</span>) {
+  <span class="clsLxrKeyword">var</span> restParameter = Array.prototype.slice.call(
+    arguments, arguments.length - arguments.callee.length - 1, arguments.length);
+
+  <span class="clsLxrComment">// ...</span>
+}
+          </code></pre>
+          <p><code>Array::slice</code> メソッドは配列から部分配列を取り出すメソッドですが、<code>arguments</code> は <code>Array</code> オブジェクトでないことに注意して下さい。<code>Object::call</code> メソッドを使って汎用メソッド (該当項参照) である <code>Array::slice</code> を <code>arguments</code> を介して呼び出しています (ただしこれは実装依存です)。ただし <code>Object::call</code> は ECMAScript 3rd Edition で採用されたものなので、確実に restParameter を作成したい場合は <code>for</code> 文を使って下さい</p>
+          <p>可変長引数も ECMAScript ネイティブオブジェクトのメソッドに使用されています</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>テクニック - 関数の多重定義</h2>
+          <p>同じ名前で、意味が少しだけ異なる関数を複数定義したいことがあります。例えば <code>String::replace</code> メソッドは第1引数が文字列か正規表現パターンかで挙動が異なります。しかし実際にはメソッドが複数用意されているわけではありません。JavaScript では同じ名前で関数を定義すると最後に定義したものだけが有効になります。関数もオブジェクトに過ぎないためこれは当然のことです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">1</span>;
+}
+<span class="clsLxrKeyword">function</span> foo() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">2</span>;
+}
+foo(); <span class="clsLxrComment">// 2</span>
+          </code></pre>
+          <p>ここでも引数を調べることにより同名の関数を複数定義したように見せることができます (勿論呼び出しに関しての話です)。調べることは実引数の型と数です</p>
+          <p>例えばドキュメントが書かれた日付を出力する関数を考えましょう。この関数には月と日が必要ですからこれらの値を引数として要求することにしましょう。まず思いつくのは以下のような引数リストです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* number */</span> nMonth, <span class="clsLxrComment">/* number */</span> nDay) {
+  <span class="clsLxrComment">// 月と日から文字列を作成...</span>
+}
+          </code></pre>
+          <p>しかしすぐに別の形式を思いつきます。ECMAScript には日付を表すオブジェクトがあるのです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* Date */</span> oDate) {
+  <span class="clsLxrComment">// Date オブジェクトから文字列を作成...</span>
+}
+          </code></pre>
+          <p>最初から文字列として与えたい場合もあるでしょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* string */</span> strTimeStamp) {
+  <span class="clsLxrComment">// 引数をそのまま使う...</span>
+}
+          </code></pre>
+          <p>3種類の形式を考えることができました。次はこれら3つの関数を1つにまとめなければいけません。そのためには関数の先頭で引数チェックを行います</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* ... */</span>) {
+  <span class="clsLxrKeyword">if</span>(arguments.length == <span class="clsLxrNum">2</span>) {
+    <span class="clsLxrKeyword">var</span> nMonth = Number(arguments[<span class="clsLxrNum">0</span>]);
+    <span class="clsLxrKeyword">var</span> nDay = Number(arguments[<span class="clsLxrNum">1</span>]);
+    <span class="clsLxrComment">// 月と日から文字列を作成...</span>
+
+  } <span class="clsLxrKeyword">else if</span>(arguments.length == <span class="clsLxrNum">1</span> &amp;&amp; <span class="clsLxrKeyword">typeof</span>(arguments[<span class="clsLxrNum">0</span>]) == <span class="clsLxrQuote">"string"</span>) {
+    <span class="clsLxrKeyword">var</span> strTimeStamp = String(arguments[<span class="clsLxrNum">0</span>]);
+    <span class="clsLxrComment">// 文字列をそのまま使う...</span>
+
+  } <span class="clsLxrKeyword">else if</span>(arguments.length == <span class="clsLxrNum">1</span> &amp;&amp; arguments[<span class="clsLxrNum">0</span>] <span class="clsLxrKeyword">instanceof</span> Date) {
+    <span class="clsLxrKeyword">var</span> oDate = arguments[<span class="clsLxrNum">0</span>];
+    <span class="clsLxrComment">// Date オブジェクトから文字列を作成...</span>
+
+  } <span class="clsLxrKeyword">else</span>
+    <span class="clsLxrKeyword">throw</span> InvalidArgumentError(<span class="clsLxrQuote">"実引数の数が合っていません"</span>);
+
+  <span class="clsLxrComment">// ...</span>
+}
+          </code></pre>
+          <p>このテクニックは簡単ですがコードの見通しが多少悪くなります。コメントをうまく使って下さい。また1つの関数に押し込まずに引数に応じた別の関数を用意し、内部で呼び出すという方法もあります</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* ... */</span>)
+  <span class="clsLxrKeyword">if</span>(arguments.length == <span class="clsLxrNum">2</span>)
+    <span class="clsLxrKeyword">return</span> __outputTimeStampByNumberNumber(arguments[<span class="clsLxrNum">0</span>], arguments[<span class="clsLxrNum">1</span>]);
+  <span class="clsLxrKeyword">else if</span>(arguments.length == <span class="clsLxrNum">1</span> &amp;&amp; <span class="clsLxrKeyword">typeof</span>(arguments[<span class="clsLxrNum">0</span>]) == <span class="clsLxrQuote">"string"</span>)
+    <span class="clsLxrKeyword">return</span> __outputTimeStampByString(arguments[<span class="clsLxrNum">0</span>]);
+  <span class="clsLxrKeyword">else if</span>(arguments.length == <span class="clsLxrNum">1</span> &amp;&amp; arguments[<span class="clsLxrNum">0</span>] <span class="clsLxrKeyword">instanceof</span> Date)
+    <span class="clsLxrKeyword">return</span> __outputTimeStampByDate(arguments[<span class="clsLxrNum">0</span>]);
+  <span class="clsLxrKeyword">else</span>
+    <span class="clsLxrKeyword">throw</span> InvalidArgumentError(<span class="clsLxrQuote">"実引数の数が合っていません"</span>);
+}
+          </code></pre>
+        </div>
+
+      <!-- 1.2 関数とオブジェクト -->
+      <div id="p1_2">
+        <h1>1.2 関数とオブジェクト</h1>
+        <p>関数という型はありません。JavaScript では関数は呼び出し可能なオブジェクトに過ぎません。逆にオブジェクトであることを利用して、関数に奇妙な振る舞いをさせることができます</p>
+        <p>この節では関数の基本的な定義からスタートし、関数をオブジェクトとして使用する例を幾つか紹介します</p>
+
+        <div class="clsSection2">
+          <h2>無名関数</h2>
+          <p>まず復習から始めましょう。関数はその定義方法から4つに分けることができます</p>
+          <ol>
+            <li><var><a href="../../ref/jscript/statement/function.html#FunctionDeclaration">FunctionDeclaration</a></var> により静的に定義された関数</li>
+            <li><var><a href="../../ref/jscript/statement/function.html#FunctionExpression">FunctionExpression</a></var> により動的に作成された関数</li>
+            <li><code>Function</code> コンストラクタにより動的に作成された関数</li>
+            <li>実装から提供される組み込み関数</li>
+          </ol>
+          <p>とりあえず 4. は無視しましょう。ここで重要なのは 1. から 3. です。最も一般的なのは 1. で、関数の名前、引数リスト、本体で構成される関数の宣言です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> plus(a, b) {
+  <span class="clsLxrKeyword">return</span> a + b;
+}
+          </code></pre>
+          <p>これだけで十分な気がします。実際、あらゆる静的関数はこれで事足ります。しかし関数を動的に定義したい場合は 2. や 3. の方法が必要になります。<a href="./1.html">1.1 引数</a> の初めで関数はスコープを持つと説明しました。動的に関数が作成できれば、動的にスコープを形成する実行単位を生み出すことができるのです。関数とスコープの関係は <a href="./3.html">1.3 クロージャ</a> で解説するとして、この節では関数のオブジェクトとしての側面について述べます
+          <p>2. や 3. の方法で作成された関数は無名関数になることがあります。無名関数とはその名の通り名前の無い関数です。「関数に名前が無かったらどうやって呼び出すのか分からん」と思われるかもしれませんが、そうではありません。以下は 2. の方法で無名関数を作成する例です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> plus = <span class="clsLxrKeyword">function</span>(a, b) {
+  <span class="clsLxrKeyword">return</span> a + b;
+};
+          </code></pre>
+          <p>これは先程 1. の方法で作成した関数と同じ引数リスト、本体を持つ関数です。「plus という名前が付けてある」と思われるかもしれませんが、&quot;plus&quot; は関数の名前ではありません。&quot;plus&quot; は無名関数 (オブジェクト) を参照するオブジェクトに過ぎません。「えー、証拠を見せて」という方はこのオブジェクトの文字列表現を見てみましょう。<code>Function::toString</code> は関数のシグニチャと本体を出力するのでしたね</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// 続き</span>
+plus.toString(); <span class="clsLxrComment">// function (a, b) {</span>
+                 <span class="clsLxrComment">// return a + b;</span>
+                 <span class="clsLxrComment">// }</span>
+          </code></pre>
+          <p>確かに名前がありませんね。理論家のあなたには次の説明はどうでしょうか。次のコードが実行されたとき何が起こるか考えてみて下さい</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> plus1, plus2;
+plus1 = plus2 = <span class="clsLxrKeyword">function</span>(a, b) {
+  <span class="clsLxrKeyword">return</span> a + b;
+};
+plus1 == plus2; <span class="clsLxrComment">// true</span>
+          </code></pre>
+          <p>2行目で1つの無名関数に2つの名前を付けようとしています (この方法で名前が付けられるとしたら)。しかし1つの関数に複数の名前を付けることはできません。別々の関数が作成されたと考えるしかありませんが、そうすると5行目は <code>false</code> になるはずです (うーん、変な説明)</p>
+          <p>しかし &quot;plus&quot; という識別子を使ってこの関数を呼び出すことはできるのです。無名関数は JavaScript コード単位の中でも複雑な部類に入ります。例えば Mozilla 付属の JavaScript デバッガ Venkman は無名関数を参照するオブジェクトまでは参照してくれません (これは言語、デバッガ双方の仕様のためで、Venkman に落ち度はありません。またソースを「読ませる」ことである程度は推測してくれます)</p>
+          <p>2. で作成された無名関数に名前をつける方法は <code>function</code> の後に名前を書いてしまうことです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> plus = <span class="clsLxrKeyword">function</span> _plus(a, b) {
+  <span class="clsLxrKeyword">return</span> a + b;
+};
+plus(<span class="clsLxrNum">2</span>, <span class="clsLxrNum">3</span>);  <span class="clsLxrComment">// 5</span>
+_plus(<span class="clsLxrNum">2</span>, <span class="clsLxrNum">3</span>); <span class="clsLxrComment">// JScript 以外はエラー! 理由は後述</span>
+plus == _plus; <span class="clsLxrComment">// JScript では false</span>
+          </code></pre>
+          <p>&quot;_plus&quot; を使って関数呼び出しが成功するのは JScript だけです。結論から言うと JScript の実装が間違っているのです。詳細を述べる前に関数に名前を付けるとはどういうことが考えてみましょう。ECMAScript 3rd Edition には以下のように記述されています</p>
+          <blockquote>
+            <var>FunctionExpression</var> の関数名は再帰呼び出しを可能にするために <var>FunctionExpression</var>
+            の本体から参照できるようになっています。しかし <var>FunctionDeclaration</var> とは異なり、<var>FunctionExpression</var>
+            を囲っているスコープからは参照できず影響を与えることもありません &#8212; ECMAScript 3rd Edition 13 Function Definition (文章は exeal が訳出)
+          </blockquote>
+          <p><var>FunctionDeclaration</var> による静的定義では、関数名は変数オブジェクト (variable object) と呼ばれるオブジェクトのプロパティ名になり、実際の <code>Function</code> オブジェクトはそのプロパティの値になります。これに対して <var>FunctionExpression</var> の場合は変数オブジェクトをその場で作成してスコープチェインの先頭に追加し、このオブジェクトのプロパティとして関数名を与えます。そしてこのオブジェクトの寿命は関数定義の終わりまでです。つまりその関数名は関数の内部からは参照可能ですが、関数定義の外では無効なのです。無名関数に名前を付ける場合はこの点に注意して下さい</p>
+          <p>3. の方法は少々特殊で、仮引数リスト本体を <em>文字列を使って</em> 定義できます。引数はカンマで区切ります</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> plus = <span class="clsLxrKeyword">new Function</span>(<span class="clsLxrQuote">"a, b"</span>, <span class="clsLxrQuote">"return a + b;"</span>);
+plus.toString(); <span class="clsLxrComment">// function anonymous(a, b) {</span>
+                 <span class="clsLxrComment">// return a + b;</span>
+                 <span class="clsLxrComment">// }</span>
+          </code></pre>
+          <p>この場合も &quot;plus&quot; は関数名ではなく、コンストラクタが返したオブジェクトを参照するだけです。面白いことにこの方法で作成された関数の文字列表現には &quot;anonymous&quot; が使用されます。当たり前ですが &quot;anonymous&quot; は関数名でも何でもありません</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>関数オブジェクト</h2>
+          <p>JavaScript の関数を単なる手続き (procedure) と考えないことが重要です。関数が呼び出し可能なオブジェクトに過ぎないことは初めに述べました。オブジェクトであるからには変数に代入したり、実引数として関数に渡したり、関数から返すことができます。或いはオブジェクトのプロパティとすることでメソッドにもなり得ます (3章を見て下さい)。ここでは関数をオブジェクトとして使用したテクニックを幾つか紹介します</p>
+          <p>よく用いられるのは <code>Array::sort</code> メソッドで使用されているテクニックです。このメソッドは省略可能な引数として引数が2つの関数をとります。メソッドは配列の要素を比較する際にこのユーザ定義関数を使って順序を決定するのです。ちょっと使ってみましょう。</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// Array::sort メソッドは、デフォルトでは各要素を文字列とみなして</span>
+<span class="clsLxrComment">// 辞書順にソートする。この関数は大文字小文字を区別せずに辞書順に</span>
+<span class="clsLxrComment">// ソートするために用意した、引数が2つのユーザ定義関数</span>
+<span class="clsLxrKeyword">function</span> fn(a, b) {
+  <span class="clsLxrKeyword">if</span>(a.toLowerCase() == b.toLowerCase())
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">0</span>;
+  <span class="clsLxrKeyword">return</span> (a.toLowerCase() &gt; b.toLowerCase()) ? <span class="clsLxrNum">1</span> : <span class="clsLxrNum">-1</span>;
+}
+
+<span class="clsLxrKeyword">var</span> arr = ["JavaScript", "javascript", "JAVASCRIPT"];
+arr.sort();   <span class="clsLxrComment">// "JAVASCRIPT","JavaScript","javascript"</span>
+arr.sort(fn); <span class="clsLxrComment">// "JavaScript","javascript","JAVASCRIPT"</span>
+
+<span class="clsLxrComment">// 無名関数を使うと以下のようにも書ける</span>
+arr.sort(<span class="clsLxrKeyword">function</span>(a, b) {
+  <span class="clsLxrKeyword">if</span>(a.toLowerCase() == b.toLowerCase())
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">0</span>;
+  <span class="clsLxrKeyword">return</span> (a.toLowerCase() &gt; b.toLowerCase()) ? <span class="clsLxrNum">1</span> : <span class="clsLxrNum">-1</span>;
+});
+          </code></pre>
+          <p>このようなソートを行う関数では要素間の大小 (どちらが先になるか) の定義が必要です。しかしそのルールは無限に存在するため、ルールを表す引数を単一の数値などの単純なもので構成するのは不可能です。その点関数はルールを細かく表現できるので、<code>Array::sort</code> はソート処理の内大小関係を求める部分をユーザ定義関数に委託できるように設計されているのです</p>
+          <p>では例として二分検索を行う関数を考えましょう。この関数は要素の比較をユーザ定義関数に委託します</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// 二分検索 (arr はソート済みとする)</span>
+<span class="clsLxrComment">// 見つかったら true を返す</span>
+<span class="clsLxrKeyword">function</span> binarySearch(<span class="clsLxrComment">/* Array */</span> arr,  <span class="clsLxrComment">// 検索対象配列</span>
+                      <span class="clsLxrComment">/* object */</span> obj, <span class="clsLxrComment">// 検索する値</span>
+                      <span class="clsLxrComment">/* function */</span> fn <span class="clsLxrComment">// ユーザ定義関数</span>
+) {
+  <span class="clsLxrKeyword">var</span> iBottom = <span class="clsLxrNum">0</span>;
+  <span class="clsLxrKeyword">var</span> iTop = arr.length - <span class="clsLxrNum">1</span>;
+  <span class="clsLxrKeyword">while</span>(iBottom &lt;= iTop) {
+    <span class="clsLxrKeyword">var</span> iCenter = Math.floor((iBottom + iTop) / <span class="clsLxrNum">2</span>);
+    <span class="clsLxrKeyword">if</span>(fn(obj, arr[iCenter]) == <span class="clsLxrNum">0</span>)
+      <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">true</span>;
+    <span class="clsLxrKeyword">else if</span>(fn(obj, arr[iCenter]) &lt; <span class="clsLxrNum">0</span>)
+      iBottom = iCenter + <span class="clsLxrNum">1</span>;
+    <span class="clsLxrKeyword">else</span>
+      iTop = iCenter - <span class="clsLxrNum">1</span>;
+  }
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">false</span>;
+}
+
+<span class="clsLxrKeyword">function</span> fn(a, b) {
+  <span class="clsLxrKeyword">if</span>(a == b)
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">0</span>;
+  <span class="clsLxrKeyword">return</span> (a &gt; b) ? <span class="clsLxrNum">1</span> : <span class="clsLxrNum">-1</span>;
+}
+<span class="clsLxrKeyword">var</span> arr = <span class="clsLxrKeyword">new</span> Array(<span class="clsLxrNum">-70</span>, <span class="clsLxrNum">6</span>, <span class="clsLxrNum">113</span>, <span class="clsLxrNum">202</span>);
+
+binarySearch(arr, <span class="clsLxrNum">113</span>, fn);  <span class="clsLxrComment">// true</span>
+binarySearch(arr, <span class="clsLxrNum">-113</span>, fn); <span class="clsLxrComment">// false</span>
+          </code></pre>
+          <p>二分検索は値の大小を使って検索する範囲を徐々に狭め、検索値を探すアルゴリズムです。この内、大小関係の定義を第3引数で与えられたユーザ定義関数に委ねています</p>
+          <p>このような関数を要求するときにはその関数のセマンティクスを正確にドキュメントする必要があります。引数の数、戻り値、再帰関数にしてもよいかなどをどこかに書いておく必要があります</p>
+          <p>以上の例のように関数をパラメータとすることで、処理の一部をクライアントがカスタマイズできるようになります。その利用方法は引数だけではありません。JavaScript で最もよく用いられるのは <acronym title="HyperText Markup Language">HTML</acronym> のイベントハンドラです</p>
+          <pre><code class="clsSample">
+document.body.onload = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrComment">// ドキュメント読み込み完了時の処理</span>
+};
+          </code></pre>
+          <p>他にも特別に関数を要求してくるオブジェクトもあります。典型的なのは Observer パターンです。Observer パターンではオブジェクトの状態が変化したときに、オブザーバと呼ばれる関数やメソッドが呼び出されます。JavaScript は関数をそのまま渡すことができるので簡単に Observer パターンを実装できます (Dynamic Scripting では DSMenu にこのパターンが使われています。ただし単一の関数ではなくインターフェイスを使って実装しています。&lt;<a href="../../res/">リソース</a>&gt;を参照)</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>関数アダプタ</h2>
+          <p>前項で C の関数ポインタのようなことをやりました。となると次は C++ の <em>関数アダプタ (adapter)</em> について考えるとしましょうか</p>
+          <p>関数アダプタは関数ポインタによく似ていますが、関数ではありません。関数アダプタは多重定義された <code>()</code> 演算子を使って、あたかも関数呼び出しをしているかのようにアクセスできるクラス (オブジェクト) です。関数ポインタと違うところは関数ポインタが単なる関数であったのに対して、関数アダプタはオブジェクトです。つまりカプセル化された内部表現を伴っているのです</p>
+          <p>以上は C++ のお話で JavaScript プログラマには分かりにくかったかもしれませんが、心配することはありません。JavaScript の関数は全て C++ の関数アダプタのように機能します。これは JavaScript の関数が全てオブジェクトであることに基づいています。要するにユーザ定義関数の実行中に、その関数のプロパティを参照することができるのです</p>
+          <p>まだ少し分かりにくいですか? では例を見て下さい。以下の関数は先ほど <code>Array::sort</code> メソッドに使用したユーザ定義関数の変形バージョンです。前回は大文字小文字を区別するかどうかという条件をハードコーディングしていましたが、今回はプロパティを使って条件を決定できるようになっています。関数の bIgnoreCase プロパティが真のときは大文字小文字は区別されません。逆に偽のときは区別されます</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> CompareString(a, b) {
+  <span class="clsLxrKeyword">if</span>(CompareString.bIgnoreCase) { <span class="clsLxrComment">// 大文字小文字を区別しない</span>
+    a = a.toLowerCase();
+    b = b.toLowerCase();
+  }
+  <span class="clsLxrKeyword">if</span>(a == b)
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">0</span>
+  <span class="clsLxrKeyword">return</span> (a &gt; b) ? <span class="clsLxrNum">1</span> : <span class="clsLxrNum">-1</span>;
+}
+
+<span class="clsLxrKeyword">var</span> arr = <span class="clsLxrKeyword">new</span> Array(<span class="clsLxrQuote">"b"</span>, <span class="clsLxrQuote">"a"</span>, <span class="clsLxrQuote">"C"</span>);
+CompareString.bIgnoreCase = <span class="clsLxrNum">false</span>;
+arr.sort(CompareString); <span class="clsLxrComment">// "C","a","b"</span>
+CompareString.bIgnoreCase = <span class="clsLxrNum">true</span>;
+arr.sort(CompareString); <span class="clsLxrComment">// "a","b","C"</span>
+          </code></pre>
+          <p>今回は簡単な例だったので少々インチキっぽいですが、それなりに役立つテクニックです。特にオブジェクト内で関数部分の方が小さくなったときに、この関数は <code>()</code> 演算子の多重定義のように振舞います。また、これにより <acronym title="Component Object Model">COM</acronym> の高級クライアントが持つデフォルトメソッドを実現することもできます</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// デフォルトメソッドの簡単な例</span>
+<span class="clsLxrKeyword">function</span> Foo() {
+  <span class="clsLxrKeyword">return</span> Foo.getValue(); <span class="clsLxrComment">// getValue をデフォルトメソッドにする</span>
+}
+
+<span class="clsLxrComment">// Foo オブジェクトの本体はこっち</span>
+Foo.getValue = <span class="clsLxrKeyword">function</span>() {<span class="clsLxrComment">/* ... */</span>};
+Foo.setValue = <span class="clsLxrKeyword">function</span>() {<span class="clsLxrComment">/* ... */</span>};
+<span class="clsLxrComment">// オブジェクトの定義が続く...</span>
+          </code></pre>
+        </div>
+
+        <div class="clsSection2">
+          <h2>関数ポインタと Function コンストラクタの限界</h2>
+          <p>なるほど、<em>関数ポインタ</em> のテクニックは便利なもので、JavaScript プログラマには必須の技術と言えます。この関数ポインタと関数の動的生成を組み合わせると非常に強力であることは誰でも分かります。例えばこのようなものはいかがでしょうか</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// 配列の要素の内、条件に適合したものだけを抽出して</span>
+<span class="clsLxrComment">// 新しい配列を作成する関数</span>
+<span class="clsLxrKeyword">function</span> filterArray(<span class="clsLxrComment">/* Array */</span> arr,  <span class="clsLxrComment">// 元の配列</span>
+                     <span class="clsLxrComment">/* function */</span> fn <span class="clsLxrComment">// ユーザ定義関数</span>
+                                       <span class="clsLxrComment">// 引数は1つで配列の要素。戻り値は</span>
+                                       <span class="clsLxrComment">// その要素を新しい配列に加えるかどうか</span>
+) {
+  <span class="clsLxrKeyword">var</span> arrNew = [];
+  <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; arr.length; ++i) {
+    <span class="clsLxrKeyword">if</span>(fn(arr[i]))
+      arrNew.push(arr[i]);
+  }
+  <span class="clsLxrKeyword">return</span> arrNew;
+}
+          </code></pre>
+          <p>関数 filterArray は条件に適合した要素だけを新しい配列に追加し、その条件はユーザ定義関数により決められます。使い方は次のようになるでしょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> arrOriginal = [<span class="clsLxrNum">45</span>, <span class="clsLxrNum">-29</span>, <span class="clsLxrNum">213</span>, <span class="clsLxrNum">99</span>, <span class="clsLxrNum">118</span>];
+
+<span class="clsLxrComment">// 50 より大きい要素だけを取り出す</span>
+<span class="clsLxrKeyword">function</span> greaterThan50(n) {
+  <span class="clsLxrKeyword">return</span> n &gt; <span class="clsLxrNum">50</span>;
+}
+filterArray(arrOriginal, greaterThan50);  <span class="clsLxrComment">// 213,99,118</span>
+
+<span class="clsLxrComment">// 100 より大きい要素だけを取り出す</span>
+<span class="clsLxrKeyword">function</span> greaterThan100(n) {
+  <span class="clsLxrKeyword">return</span> n &gt; <span class="clsLxrNum">100</span>;
+}
+filterArray(arrOriginal, greaterThan100); <span class="clsLxrComment">// 213,118</span>
+
+<span class="clsLxrComment">// 200 より大きい要素だけを取り出す</span>
+<span class="clsLxrKeyword">function</span> greaterThan200(n) {
+  <span class="clsLxrKeyword">return</span> n &gt; <span class="clsLxrNum">200</span>;
+}
+filterArray(arrOriginal, greaterThan200); <span class="clsLxrComment">// 213</span>
+          </code></pre>
+          <p>まあ、何が言いたいのかすぐに分かると思いますが、条件を変更するたびに関数を作り直すのが面倒なのです。無名関数をそのまま引数に渡せば少し見通しが良くなりますが、根本的には変わりません</p>
+          <p>ここでは3つのユーザ定義関数の性質に共通点があることに注意しましょう。これらの関数はいずれも引数がある数値より大きいかどうかを調べています。この「ある数値」をパラメータとする関数が1つあれば事足りると考えられます。そこで登場するのが <code>Function</code> オブジェクトを返す関数、関数を返す関数です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> greaterThan(<span class="clsLxrComment">/* number */</span> u) {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">new</span> Function(<span class="clsLxrQuote">"n"</span>, <span class="clsLxrQuote">"return n &gt; "</span> + u + <span class="clsLxrQuote">";"</span>);
+}
+          </code></pre>
+          <p>この関数があれば先ほどのコードは非常に簡単になります</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> arrOriginal = [<span class="clsLxrNum">45</span>, <span class="clsLxrNum">-29</span>, <span class="clsLxrNum">213</span>, <span class="clsLxrNum">99</span>, <span class="clsLxrNum">118</span>];
+
+<span class="clsLxrComment">// 50 より大きい要素だけを取り出す</span>
+filterArray(arrOriginal, greaterThan(<span class="clsLxrNum">50</span>));  <span class="clsLxrComment">// 213,99,118</span>
+
+<span class="clsLxrComment">// 100 より大きい要素だけを取り出す</span>
+filterArray(arrOriginal, greaterThan(<span class="clsLxrNum">100</span>)); <span class="clsLxrComment">// 213,118</span>
+
+<span class="clsLxrComment">// 200 より大きい要素だけを取り出す</span>
+filterArray(arrOriginal, greaterThan(<span class="clsLxrNum">200</span>)); <span class="clsLxrComment">// 213</span>
+          </code></pre>
+          <p>これは素晴らしいテクニックです。この方法を使えば他にも lessThan (より小さい) 、equalTo (等しい) など汎用的な関数をその場で簡単に作成できます</p>
+          <p>しかしこの方法には問題があるのです。まず <code>Function</code> コンストラクタが引数に文字列を要求することです。上の greaterThan 関数を見てもあまり綺麗ではありません。今は単純な例ですが、複雑な条件を記述する関数だとこのままでは厳しいのは明らかです。普通の関数定義と同様に記述できたら良いと思いませんか?</p>
+          <p>「関数を返す関数」という考え方自体は上策と言えます。<code>Function</code> コンストラクタの弱点が明らかになったところで、次の節へ進むとしましょう。次節で議論する「クロージャ」は JavaScript 屈指の強力なテクニックです。クロージャはここでの問題を解決するだけでなく、新しいスクリプト記述とさらに汎用的なプログラミングを可能にします</p>
+        </div>
+
+      <!-- 1.3 クロージャ -->
+      <div id="p1_3">
+        <h1>1.3 クロージャ</h1>
+
+        <div class="clsSection2">
+          <h2>関数を返す関数</h2>
+          <p>以下が前節の greaterThan 関数を書き直したものです。お察しの通り <code>Function</code> コンストラクタの代わりに関数式を使っています</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> greaterThan(<span class="clsLxrComment">/* number */</span> u) {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">function</span>(n) {
+    <span class="clsLxrKeyword">return</span> n &gt; u;
+  };
+}
+
+<span class="clsLxrComment">// 使う</span>
+<span class="clsLxrKeyword">var</span> arrOriginal = [<span class="clsLxrNum">45</span>, <span class="clsLxrNum">-29</span>, <span class="clsLxrNum">213</span>, <span class="clsLxrNum">99</span>, <span class="clsLxrNum">118</span>];
+filterArray(arrOriginal, greaterThan(<span class="clsLxrNum">50</span>)); <span class="clsLxrComment">// 213,99,118</span>
+          </code></pre>
+          <p>さて、このコードを見てどうでしょうか。「何だか訳が分からない」と思うかもしれません。それもそのはずで、実際に奇妙なことが起こっているのです。関数呼び出しについて次のような手順を考えるとこのコードは動かないような気がします</p>
+          <ol>
+            <li><code>greaterThan(50)</code> とやると引数が1つで、その引数が <code>u</code> より大きければ真を返す関数が作成され、返される</li>
+            <li>filterArray で実際に 1. の戻り値である無名関数が呼び出される</li>
+            <li>無名関数が実行され、<code>n</code> と <code>u</code> が比較される。でも関数 <code>greaterThan</code> のスコープはもう終わっているから <code>u</code> は見つからない???</li>
+          </ol>
+          <p>では <code>Function</code> コンストラクタのときはなぜうまく動き、違和感が無かったのでしょうか。異なる点は外側の引数の埋め込み方です。もう一度前回の greaterThan を見てみましょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> greaterThan(<span class="clsLxrComment">/* number */</span> u) {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">new</span> Function(<span class="clsLxrQuote">"n"</span>, <span class="clsLxrQuote">"return n &gt; "</span> + u + <span class="clsLxrQuote">";"</span>);
+}
+      </code></pre>
+    <p>ここでは <code>u</code> は文字列に組み込まれ、完成した文字列 (例えば <code>&quot;return n &gt; 50;&quot;</code>) が無名関数の本体になっています。しかし今回作成した関数から返される無名関数はそうではありません。以下のコードを実行すれば分かります</p>
+    <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> f = greaterThan(<span class="clsLxrNum">50</span>);
+f.toString(); <span class="clsLxrComment">// function(n) {</span>
+              <span class="clsLxrComment">//   return n &gt; u;</span>
+              <span class="clsLxrComment">// }</span>
+            </code></pre>
+          <p>返された無名関数には確かに <code>u</code> がそのまま残っています。しかし関数のコードそのものには &quot;u&quot; は見当たりません。なぜこれで参照エラーにならないのでしょうか</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>関数+スコープ</h2>
+          <p>実はこのようにして作成された関数は自身を作成した実行フレーム (activation frame) への参照を保持することで、<code>u</code> を可視のまま保っているのです。実行フレームはスコープに入るたびに作成され、そのスコープ中で定義されている全ての限定名とその値というセットの集合を持ちます。そしてスコープが終了しても実行フレームは <em>自身を参照するものがある限りガベージコレクトされません</em>。そしてこの無名関数を <em>クロージャ (closure; 囲まれたもの)</em> というのです (ECMAScript の仕様にはこの言葉は使われていない)</p>
+          <p>他のプログラム言語 (スクリプト以外) から移行してきた人にとっては奇怪千万ですが、JavaScript の強みの一つにこのクロージャが挙げられます。以下は JavaScript 1.5 で private プロパティを実現しようとする、よく見られる例ですがクロージャが理解できれば局所変数がコンストラクタの外でも有効な理由が説明できるでしょう (ここで示す private メンバ実現のアプローチはよく知られているものですが、これは不完全です。私のアプローチは第3章で紹介しましょう)</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(<span class="clsLxrComment">/* string */</span> strName) {
+  <span class="clsLxrKeyword">var</span> m_strName = strName; <span class="clsLxrComment">// private メンバ</span>
+  <span class="clsLxrComment">// ゲッタ</span>
+  Person.prototype.getName = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> m_strName;
+  };
+}
+          </code></pre>
+
+        <div class="clsSection2">
+          <h2>テクニック &#8212; テンプレート</h2>
+          <p>前項まででクロージャを使って本体の一部だけが異なる関数を作成する方法を説明しました。「一部」とはクロージャから可視な限定子です。一部だけが異なっていてあとは同じというと <a href="./1.html">1.1 引数</a> で紹介した引数型チェックを自動化できるのではないでしょうか</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// 第1引数が T のインスタンスでないと例外を投げる関数を返す関数</span>
+<span class="clsLxrKeyword">function</span> foo(<span class="clsLxrComment">/* constructor */</span> T) {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">function</span>(<span class="clsLxrComment">/* T */</span> n) {
+    <span class="clsLxrKeyword">if</span>(!(n <span class="clsLxrKeyword">instanceof</span> T))
+      <span class="clsLxrKeyword">throw</span> InvalidArgumentError(<span class="clsLxrQuote">"引数の型が合っていません"</span>);
+    <span class="clsLxrComment">// 本処理...</span>
+  };
+}
+
+<span class="clsLxrComment">// 使う</span>
+<span class="clsLxrKeyword">var</span> doSomethingWithDate = foo(Date);
+<span class="clsLxrKeyword">var</span> doSomethingWithNumber = foo(Number);
+
+doSomethingWithDate(<span class="clsLxrKeyword">new</span> Number(<span class="clsLxrNum">7</span>)); <span class="clsLxrComment">// エラー! "引数の型が合っていません"</span>
+doSomethingWithDate(<span class="clsLxrKeyword">new</span> Date());    <span class="clsLxrComment">// ok</span>
+
+doSomethingWithNumber(<span class="clsLxrKeyword">new</span> Number(<span class="clsLxrNum">7</span>)); <span class="clsLxrComment">// ok</span>
+doSomethingWithNumber(<span class="clsLxrKeyword">new</span> Date());    <span class="clsLxrComment">// エラー! "引数の型が合っていません"</span>
+          </code></pre>
+          <p>このように汎用的な関数が書けるようになります。説明していませんでしたが doSomethingWithNumber を作成した後でも doSomethingWithDate は健在です。上書きされる心配はありません。スコープに入るたびに新しい実行フレームが作成されるのでしたね</p>
+          <p>ところでこのようなテクニックは役に立つのでしょうか。確かに上のコードは引数チェックという意味では正しく動作します。しかし &quot;本処理...&quot; の部分には何が書けるか考えてみて下さい。使用例では T が <code>Number</code> と <code>Date</code> となる関数を返しましたが、この関数が数値と日付に対して行いたい汎用的な処理とは何でしょうか。或いはそのような汎用的な処理が可能なのでしょうか</p>
+          <p>私は関数内部の特定の型だけが異なる関数を作成するこのテクニックを勝手に <em>テンプレート (template)</em> と呼んでいますが、JavaScript でテンプレートが有効な場合は非常に限られています。テンプレートは元々型に厳密な C++ の機能ですが JavaScript の変数には型が無く、一度宣言された変数にはどのような型のオブジェクトも格納できます。このため汎用的なプログラミングあまり意味が無いのです</p>
+          <p>しかし型をパラメータとしたクロージャは有用なものです。このテクニックは JavaScript のオブジェクト指向について解説する第3章でもう一度議論します</p>
+        </div>
+
+      <!-- 1.4 関数の変形 -->
+      <div id="p1_4">
+        <h1>1.4 関数の変形</h1>
+        <p>前節で一部だけ動作の異なる関数を幾つでも作成する方法を示しました。更に柔軟な関数の生成方法があれば素晴らしいと思いませんか? ここでは既存の (基本的な) 関数同士を合成したり、引数を固定したりして全く別の関数を生成する方法を紹介します</p>
+
+        <div class="clsSection2">
+          <h2>復習</h2>
+          <p>その前に復習というか再認識しておいて頂きたいことがあります。関数の<strong>意味</strong>についてです。例えば以下のようなクロージャを使った簡単なものがあるとしましょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// 足し算をする関数を返す</span>
+<span class="clsLxrKeyword">function</span> plus(x, y) {
+  <span class="clsLxrKeyword">return function</span>() {
+    <span class="clsLxrKeyword">return</span> x + y;
+  };
+}
+
+<span class="clsLxrKeyword">var</span> f = plus(<span class="clsLxrNum">3</span>, <span class="clsLxrNum">4</span>);
+f(); <span class="clsLxrComment">// 7</span>
+          </code></pre>
+          <p>この関数 (<code>plus</code>) は加算を行う関数を返しますが、この関数は普通の関数 (例えば <code>function plus(x, y) {return x + y;}</code>) と明らかに違っています。それは <em>引数を指定しただけでは加算演算はまだ行われない</em> という点です。つまり:</p>
+          <ul>
+            <li>演算を遅らせることが出来る</li>
+            <li>後で何度でも同じ引数の組み合わせで呼び出すことが出来る</li>
+          </ul>
+          <p>これらの特徴は関数は呼び出し時に自分のコードを実行するという基本的な性格も表しています。上記の例では関数 <code>f</code> は外側から見れば中身がどうなっているのか分かりませんが、<code>f()</code> とすることで関数を呼び出すことが、つまり <code>f</code> に込められた意味のあるコードが実行されるということです。そしてそれはいつでもよいし、呼び出し側が何であっても構わないのです。この当たり前のように思える関数の性質が本節で最も重要なことです</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>関数の合成</h2>
+          <p>まず関数同士の合成から始めましょう。例えば数学で以下のような2つの関数があるとします</p>
+          <ul>
+            <li>f(x) = x * 2</li>
+            <li>g(x) = x + 2</li>
+          </ul>
+          <p>この2つは引数の数に注意すれば、組み合わせて使うことが出来ます。例えば g の結果を引数として f に適用する場合は f(g(x)) のようになります。そしてこれを新たな関数 h(x) = f(g(x)) として考えることが出来るでしょう。2つの関数から違う意味の関数 h(x) = (x + 2) * 2 が得られたわけです</p>
+          <p>この程度の数式であれば JavaScript でも表現できそうです。各関数を定義してみましょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> f(x) { <span class="clsLxrComment">// f(x) = x * 2</span>
+  <span class="clsLxrKeyword">return</span> x * 2;
+}
+<span class="clsLxrKeyword">function</span> g(x) { <span class="clsLxrComment">// g(x) = x + 2</span>
+  <span class="clsLxrKeyword">return</span> x + 2;
+}
+<span class="clsLxrKeyword">function</span> h(x) { <span class="clsLxrComment">// h(x) = f(g(x))</span>
+  <span class="clsLxrKeyword">return</span> f(g(x));
+}
+
+h(<span class="clsLxrNum">3</span>); <span class="clsLxrComment">// 10</span>
+          </code></pre>
+          <p>しかしこのような合成の組み合わせは幾らでも考えられるので、<code>h</code> のような関数をいちいち定義するのは面倒です。必要なときだけ生成できるようにしたいものです。例えばこんな風に使えたら便利です:</p>
+          <pre><code class="clsSample">
+compose(f, g)(<span class="clsLxrNum">3</span>); <span class="clsLxrComment">// f と g を合成して得られた関数を引数を付けて呼び出す</span>
+          </code></pre>
+          <p>このような合成を行うコードを書くのは以外に簡単ですが、関数の引数リストに注意して下さい。上述の例では全て引数は1つでしたが、数によっては合成できない可能性があります (考え方として正しくないという意味で)。ここでは以下の5つの組み合わせを考えます</p>
+          <table border="1" cellspacing="1">
+            <caption>関数合成パターン</caption>
+            <tr><th>組み合わせ</th><th>実装</th></tr>
+            <tr><td>f(g(x))</td><td><code>compose_f_gx</code></td></tr>
+            <tr><td>f(g(x), h(x))</td><td><code>compose_f_gx_hx</code></td></tr>
+            <tr><td>f(g(x), h(y))</td><td><code>compose_f_gx_hy</code></td></tr>
+            <tr><td>f(g(x, y))</td><td><code>compose_f_gxy</code></td></tr>
+            <tr><td>f(g())</td><td><code>compose_f_g</code></td></tr>
+          </table>
+          <p>まず <code>compose_f_gx</code> の実装を示します。クロージャを使えば簡単ですがよく分からない場合は前節、前々節に戻ってみてください</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> compose_f_gx(f, g) {
+  <span class="clsLxrComment">// 引数チェックはお好みで...</span>
+  <span class="clsLxrKeyword">if</span>(!(f <span class="clsLxrKeyword">instanceof</span> Function) || f.length != <span class="clsLxrNum">1</span>
+      || !(g <span class="clsLxrKeyword">instanceof</span> Function) || g.length != <span class="clsLxrNum">1</span>)
+    <span class="clsLxrKeyword">throw</span> <span class="clsLxrQuote">"引数は1つの引数をとる関数でなければなりません。"</span>;
+
+  <span class="clsLxrKeyword">return function</span>(x) {
+    <span class="clsLxrKeyword">return</span> f(g(x));
+  };
+}
+
+<span class="clsLxrComment">// 使う</span>
+compose_f_gx(f, g)(<span class="clsLxrNum">3</span>);
+          </code></pre>
+          <p>どうってことないですね? では残りの4つも書いてみましょう (簡単のため引数チェックは省いてあります)</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> compose_f_gx_hx(f, g, h) {
+  <span class="clsLxrKeyword">return function</span>(x) {
+    <span class="clsLxrKeyword">return</span> f(g(x), h(x));
+  };
+}
+
+<span class="clsLxrKeyword">function</span> compose_f_gx_hy(f, g, h) {
+  <span class="clsLxrKeyword">return function</span>(x, y) {
+    <span class="clsLxrKeyword">return</span> f(g(x), h(y));
+  };
+}
+
+<span class="clsLxrKeyword">function</span> compose_f_gxy(f, g) {
+  <span class="clsLxrKeyword">return function</span>(x, y) {
+    <span class="clsLxrKeyword">return</span> f(g(x, y));
+  };
+}
+
+<span class="clsLxrKeyword">function</span> compose_f_g(f, g) {
+  <span class="clsLxrKeyword">return function</span>() {
+    <span class="clsLxrKeyword">return</span> f(g());
+  };
+}
+          </code></pre>
+          <p>使用例が少なかったので関数合成の威力は分からなかったかもしれません。しかしこれらは次の引数束縛と組み合わせて使うことで非常に強力なツールとなります</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>引数束縛の概要</h2>
+          <p>次は引数の束縛 (固定) です。概要を理解していただくために、また数学の関数に登場してもらいましょう</p>
+          <ul>
+            <li>f(x, y) = x + y</li>
+          </ul>
+          <p>和を返す関数ですね。ここで <var>x</var> を3とかに固定すると、g(y) = 3 + y となり新しい関数が得られます。第1引数を固定したことで引数の数が <em>減少しています。</em>これが引数の束縛の簡単なバージョンです</p>
+          <p>引数を減らすだけでなく順序を入れ替えたりも出来ます。例えば h(x, y) = f(y, x) とすると第1引数と第2引数を入れ替えた関数が得られます。引数の束縛により、使いにくい関数を使い易いものに書き直すことが出来るのです</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>2項関数の引数束縛</h2>
+          <p>引数の束縛はかなり強力ですが、束縛を自動化するための関数の実装も結構大変です。まずは簡単なものとして、束縛対象の関数が2引数、束縛は固定のみとして話を進めましょう。これだけでもそれなりに役に立つものです。まず以下のような、引数を束縛して欲しそうな、わざとらしい関数があるものとします</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> plus(lhs, rhs) {       <span class="clsLxrComment">// 加算</span>
+  <span class="clsLxrKeyword">return</span> lhs + rhs;
+}
+<span class="clsLxrKeyword">function</span> minus(lhs, rhs) {      <span class="clsLxrComment">// 減算</span>
+  <span class="clsLxrKeyword">return</span> lhs - rhs;
+}
+<span class="clsLxrKeyword">function</span> multiplies(lhs, rhs) { <span class="clsLxrComment">// 乗算</span>
+  <span class="clsLxrKeyword">return</span> lhs * rhs;
+}
+<span class="clsLxrKeyword">function</span> divides(lhs, rhs) {    <span class="clsLxrComment">// 除算</span>
+  <span class="clsLxrKeyword">return</span> lhs / rhs;
+}
+          </code></pre>
+          <p>四則演算を行う関数群ですね。全て引数が2つであることに注意して下さい</p>
+          <p>さて、引数を束縛する関数を用意します。第1引数を束縛するものを <code>bind1st</code> 、第2引数を束縛するものを <code>bind2nd</code> とすると実装は以下のようになります。これもクロージャを使えば簡単です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> bind1st(f, x) {
+  <span class="clsLxrComment">// 引数チェック</span>
+  <span class="clsLxrKeyword">if</span>(!(f <span class="clsLxrKeyword">instanceof</span> Function) || f.length != <span class="clsLxrNum">2</span>)
+    <span class="clsLxrKeyword">throw</span> <span class="clsLxrQuote">"第1引数は二項関数でなければなりません。"</span>;
+
+  <span class="clsLxrKeyword">return function</span>(y) {
+    <span class="clsLxrKeyword">return</span> f(x, y);
+  };
+}
+
+<span class="clsLxrKeyword">function</span> bind2nd(f, y) {
+  <span class="clsLxrComment">// 引数チェック</span>
+  <span class="clsLxrKeyword">if</span>(!(f <span class="clsLxrKeyword">instanceof</span> Function) || f.length != <span class="clsLxrNum">2</span>)
+    <span class="clsLxrKeyword">throw</span> <span class="clsLxrQuote">"第1引数は二項関数でなければなりません。"</span>;
+
+  <span class="clsLxrKeyword">return function</span>(x) {
+    <span class="clsLxrKeyword">return</span> f(x, y);
+  };
+}
+          </code></pre>
+          <p>では実際に使ってみましょう。四則演算であれば何でも出来るはずです</p>
+          <pre><code class="clsSample">
+bind1st(plus, <span class="clsLxrNum">3</span>)(<span class="clsLxrNum">4</span>);  <span class="clsLxrComment">// 7 = 3 + 4</span>
+bind2nd(minus, <span class="clsLxrNum">3</span>)(<span class="clsLxrNum">4</span>); <span class="clsLxrComment">// 1 = 4 - 3</span>
+
+<span class="clsLxrKeyword">var</span> f = bind2nd(multiplies, <span class="clsLxrNum">3</span>); <span class="clsLxrComment">// f(x) = x * 3</span>
+f(<span class="clsLxrNum">2</span>);  <span class="clsLxrComment">// 6 = 2 * 3</span>
+f(<span class="clsLxrNum">42</span>); <span class="clsLxrComment">// 126 = 42 * 3</span>
+          </code></pre>
+          <p>ここで関数合成も一緒に使ってみましょう</p>
+          <pre><code class="clsSample">
+compose_f_gx(
+  bind1st(divides, <span class="clsLxrNum">30</span>),
+  bind2nd(plus, <span class="clsLxrNum">3</span>)
+)(<span class="clsLxrNum">2</span>); <span class="clsLxrComment">// 6 = 30 / (2 + 3)</span>
+
+compose_f_gx(
+  bind1st(plus, <span class="clsLxrNum">5</span>),
+  compose_f_gx(
+    bind1st(plus, <span class="clsLxrNum">3</span>),
+    bind2nd(plus, <span class="clsLxrNum">8</span>)
+  )
+)(<span class="clsLxrNum">2</span>); <span class="clsLxrComment">// 18 = (5 + (3 + 8)) + 2</span>
+          </code></pre>
+          <p>関数合成を使うことで数式における括弧を表現することが出来ます。これにより3項以上の計算も出来ます (3項以上の計算に2項演算の組み合わせを使うのは貧相な感じがしますか? 大抵のプログラミング言語では2項の演算しか出来ませんよ)。簡単のために数値計算の例ばかり挙げましたが、引数が2つの関数であれば何にでも適用できます</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>引数リストに非依存の束縛</h2>
+          <p>上で示した実装は引数が2つでないと使えません。これはつまらない制限なので、是非引数総数に依存しないバージョンを考えましょう</p>
+          <p>引数の束縛には色々ありますが、以下に示す4パターンに分けて考えます。見れば分かるとおりこれらは結局1つの同じ機能を言い表しているに過ぎません。しかし全ての機能をまとめた実装をいきなり紹介するのは難しいので敢えて分解しました。ここで <code>_X</code> という識別子は X 番目の引数を表すオブジェクトです</p>
+          <table border="1" cellspacing="1">
+            <caption>引数束縛パターン (func(a, b, c) という関数があるとして)</caption>
+            <tr><th>パターン</th><th>式</th><th>意味</th></tr>
+            <tr><td>引数の固定 (他引数以外による)</td><td>bind(func, _1, _2, 42)</td><td>第1引数、第2引数はそのままで、第3引数を数値 42 で固定。引数は1つ減少</td></tr>
+            <tr><td rowspan="2">引数の固定 (他引数による)</td><td>bind(func, _1, _2, _2)</td><td>第1引数、第2引数はそのままで、第3引数に第2引数と同じ値を渡す。引数は1つ減少</td></tr>
+            <tr><td>bind(func, _1, _3, _2)</td><td>第1引数はそのままで、第2引数と第3引数を交換。引数の減少は無し</td></tr>
+            <tr><td rowspan="2">引数の加工</td><td>bind(func, _1, _2 + 42, _2 + _3)</td><td>第1引数はそのままで、第2引数は常に数値 42 を足した値、第3引数は第2引数と足した値を使う。引数の減少は無し</td></tr>
+            <tr><td>bind(func, _1.method(arg), _2._1)</td><td>第1引数をオブジェクトとみなし、その <var>method</var> メソッドを引数付きで呼び出した結果を第1引数として渡す。第2引数もオブジェクトとみなし、第1引数で表現される名前を持つプロパティの値を第2引数として渡す</td></tr>
+          </table>
+          <p>後ろに行くほど難しくなりますが非常に役立ちます (後で使用例を紹介します)。まず簡単な最初の3つを実装します。簡単といっても色々注意しなければならないことがあります</p>
+          <p>最初に引数を表現する <code>_X</code> の定義ですが、各オブジェクトは自分が何番目の引数であるかを知っておけばいいでしょう。オブジェクトの概要やコンストラクタの書き方については<a href="../3/1.html">3章</a>以降を見てください。ただしここでは簡単なものしか出てきません。定義は以下のようになります:</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Parameter(i) {
+  <span class="clsLxrKeyword">this</span>.i = i;
+}
+
+<span class="clsLxrKeyword">var</span> <span class="clsLxrComment">/* const */</span> _1 = <span class="clsLxrKeyword">new</span> Parameter(<span class="clsLxrNum">1</span>); <span class="clsLxrComment">// 第1引数</span>
+<span class="clsLxrKeyword">var</span> <span class="clsLxrComment">/* const */</span> _2 = <span class="clsLxrKeyword">new</span> Parameter(<span class="clsLxrNum">2</span>); <span class="clsLxrComment">// 第2引数</span>
+<span class="clsLxrKeyword">var</span> <span class="clsLxrComment">/* const */</span> _3 = <span class="clsLxrKeyword">new</span> Parameter(<span class="clsLxrNum">3</span>); <span class="clsLxrComment">// 第3引数</span>
+...
+          </code></pre>
+          <p>引数を幾つまで定義するかは設計者の自由ですが、少な過ぎると実用に耐えられません。しかし多過ぎると実装者が泣くことになります (後で分かります)</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>limitedBind の実装</h2>
+          <p>準備ができたので上の表の最初の3つを実現する <code>limitedBind</code> 関数を書いてみましょう。焦らずにまずは引数チェックまでです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// limitedBind(f : function, ...) : function</span>
+<span class="clsLxrKeyword">function</span> limitedBind(f) {
+  <span class="clsLxrKeyword">if</span>(!(f <span class="clsLxrKeyword">instanceof</span> Function))
+    <span class="clsLxrKeyword">throw</span> <span class="clsLxrQuote">"第1引数は関数でなければなりません。"</span>;
+  <span class="clsLxrKeyword">else if</span>(arguments.length - <span class="clsLxrNum">1</span> != f.length)
+    <span class="clsLxrKeyword">throw</span> <span class="clsLxrQuote">"引数の数が正しくありません。"</span>;
+
+  <span class="clsLxrKeyword">var</span> arr = [];
+  <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">1</span>; i &lt; arguments.length; ++i) {
+    <span class="clsLxrKeyword">if</span>(arguments[i] <span class="clsLxrKeyword">instanceof</span> Parameter) {
+      <span class="clsLxrKeyword">if</span>(arguments[i].i &gt; f.length)
+        <span class="clsLxrKeyword">throw</span> <span class="clsLxrQuote">"束縛対象関数に適合しない _"</span> + arguments[i].i + <span class="clsLxrQuote">"が見つかりました。"</span>;
+      arr[arguments[i].i - <span class="clsLxrNum">1</span>] = <span class="clsLxrNum">true</span>;
+    }
+  }
+  <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; arr.length; ++i) {
+    <span class="clsLxrKeyword">if</span>(arr[i] != <span class="clsLxrNum">true</span>)
+      <span class="clsLxrKeyword">throw</span> <span class="clsLxrQuote">"_X は _1 から連続していなければなりません。"</span>;
+  }
+          </code></pre>
+          <p>最初に第1引数が関数であることを確認し、次に関数と残余引数の数が一致しているかどうかを調べています。その後のループは残余引数中に不正な <code>_X</code> が無いかを調べています。例えば3引数の関数に対して <code>_4</code> とか <code>_5</code> とかがあるとまずいわけです。ただしこのテストは高速化のためで、実際は配列 <code>arr</code> を使ったチェックの方が重要です。それが最後のループの部分で、<code>_X</code> が <code>_1</code> から連続して使われているかを調べています。例えば <code>limitedBind(func, _1, _2, _4)</code> とか <code>limitedBind(func, _2)</code> とかはまずいわけです</p>
+          <p>引数チェックが終わるといよいよ本題ですが、よく考えて書き始めないと途中で行き詰ってしまいます。呼び出し側の束縛の仕方で場合分けするのがよいでしょう。しかしその呼び出し側の<strong>意図</strong>を読み取るのが結構大変です。幾つか明らかなことがあるのでそれを整理しましょう</p>
+          <ul>
+            <li>渡された引数が <code>Parameter</code> オブジェクトでなければ、他の値による引数の固定 &rarr; 引数が減少する</li>
+            <li>渡された引数が <code>Parameter</code> オブジェクトであれば評価の先送りを期待している。ただし引数が減少するかどうかはこれだけでは分からない</li>
+            <li>束縛後の関数の引数の個数は、渡された <code>Parameter</code> オブジェクト中最大の添え字に一致する</li>
+          </ul>
+          <p>他にもありますがこれでいいでしょう。場合分けは3番目、つまり束縛後の関数の引数の個数で行うといいでしょう。あとはクロージャを使って関数呼び出しを行う関数を返します。<code>limitedBind</code> 後半部分のアウトラインは以下のようになります:</p>
+          <pre><code class="clsSample">
+  <span class="clsLxrComment">// 続き</span>
+  <span class="clsLxrKeyword">var</span> outerArgs = arguments;
+
+  <span class="clsLxrKeyword">switch</span>(arr.length) { <span class="clsLxrComment">// 結果の引数の個数で場合分け</span>
+  <span class="clsLxrKeyword">case</span> <span class="clsLxrNum">0</span>:
+    <span class="clsLxrKeyword">return function</span>() {...};
+  <span class="clsLxrKeyword">case</span> <span class="clsLxrNum">1</span>:
+    <span class="clsLxrKeyword">return function</span>(a1) {...};
+  <span class="clsLxrKeyword">case</span> <span class="clsLxrNum">2</span>:
+    <span class="clsLxrKeyword">return function</span>(a1, a2) {...};
+  ...
+  }
+  <span class="clsLxrComment">// ここに来ることはありません</span>
+}
+          </code></pre>
+          <p><code>outerArgs</code> は <code>limitedBind</code> の実引数を参照します。クロージャ内では <code>arguments</code> 識別子は無名関数の実引数を指すので、名前を退避させているのです</p>
+          <p>各無名関数の引数リストに注目してください。当たり前ですがこの引数長は束縛済み関数の引数の総数と同じです。引数の上限をあまり大きな数に設定するとこの辺りで嫌な感じがしてきます。例えば上限が15であれば case 15 まで書かなければいけません。しかもこの後すぐ分かりますが、束縛済み関数の引数リストが長くなるほど case 文は長大になります</p>
+          <p>ここでは全ての場合の実装を示すのはやめて、引数の少ない最初の方だけ書いてみます。まず結果の引数長が0の場合ですが、この場合は <code>_X</code> は1つも使われていないはずです。全ての引数が <code>Parameter</code> 以外の値で固定されるような状況です。簡単ですがもう1段階場合分けが必要です。元の関数の引数長に基づく場合分けです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// outerArgs.length は limitedBind の実引数長だが
+// f.length + 1 と同値であることは最初に確認した</span>
+<span class="clsLxrKeyword">switch</span>(outerArgs.length - <span class="clsLxrNum">1</span>) {
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">0</span>: <span class="clsLxrKeyword">return</span> f();
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">1</span>: <span class="clsLxrKeyword">return</span> f(outerArgs[<span class="clsLxrNum">1</span>]);
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">2</span>: <span class="clsLxrKeyword">return</span> f(outerArgs[<span class="clsLxrNum">1</span>], outerArgs[<span class="clsLxrNum">2</span>]);
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">3</span>: <span class="clsLxrKeyword">return</span> f(outerArgs[<span class="clsLxrNum">1</span>], outerArgs[<span class="clsLxrNum">2</span>], outerArgs[<span class="clsLxrNum">3</span>]);
+...
+}
+          </code></pre>
+          <p>無名関数の中に <code>switch</code> 文を置くのは嫌だという場合は工夫してください。またこの程度の場合分けであれば <code>eval</code> と <code>Function</code> コンストラクタで何とかできるかもしれません</p>
+          <p>次は引数が1つになる場合です。この場合、<code>_1</code> が (必ず) 登場します。<code>_1</code> が現れた箇所は束縛済み関数の第1引数になる部分ですから、無名関数の引数 (<code>a1</code>) をそのまま使います。ここでも元の関数の引数長に基づく場合分けが必要になります</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">switch</span>(outerArgs.length - <span class="clsLxrNum">1</span>) {
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">1</span>: <span class="clsLxrComment">// limitedBind(func, _1) とかあまり意味の無い場合</span>
+  <span class="clsLxrKeyword">return</span> f(a1);
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">2</span>: <span class="clsLxrComment">// limitedBind(func, _1, n) とか limitedBind(func, n, _1)</span>
+  <span class="clsLxrKeyword">return</span> f(
+    (outerArgs[<span class="clsLxrNum">1</span>] == _1) ? a1 : outerArgs[<span class="clsLxrNum">1</span>],
+    (outerArgs[<span class="clsLxrNum">2</span>] == _1) ? a1 : outerArgs[<span class="clsLxrNum">2</span>]);
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">3</span>: <span class="clsLxrComment">// limitedBind(func, _1, _1, n) とか limitedBind(func, _1, n, _1)</span>
+  <span class="clsLxrKeyword">return</span> f(
+    (outerArgs[<span class="clsLxrNum">1</span>] == _1) ? a1 : outerArgs[<span class="clsLxrNum">1</span>],
+    (outerArgs[<span class="clsLxrNum">2</span>] == _1) ? a1 : outerArgs[<span class="clsLxrNum">2</span>]
+    (outerArgs[<span class="clsLxrNum">3</span>] == _1) ? a1 : outerArgs[<span class="clsLxrNum">3</span>]);
+...
+}
+          </code></pre>
+          <p>ちょっとややこしくなってきましたね。次は引数2つになるパターンで、<code>_1</code> と <code>_2</code> が出てきます。前と同じで <code>a1</code> が <code>_1</code> に、<code>a2</code> が <code>_2</code> に対応します</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">switch</span>(outerArgs.length - <span class="clsLxrNum">1</span>) {
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">2</span>: <span class="clsLxrComment">// limitedBind(func, _1, _2) とか limitedBind(func, _2, _1)</span>
+  <span class="clsLxrKeyword">return</span> f(
+    (outerArgs[<span class="clsLxrNum">1</span>] == _1) ? a1 : a2,
+    (outerArgs[<span class="clsLxrNum">2</span>] == _1) ? a1 : a2);
+<span class="clsLxrKeyword">case</span> <span class="clsLxrNum">3</span>: <span class="clsLxrComment">// limitedBind(func, _1, _2, n) とか limitedBind(func, _2, n, _1)</span>
+  <span class="clsLxrKeyword">return</span> f(
+    (outerArgs[<span class="clsLxrNum">1</span>] <span class="clsLxrKeyword">instanceof</span> Parameter) ?
+      arguments[outerArgs[<span class="clsLxrNum">1</span>].i - <span class="clsLxrNum">1</span>] : outerArgs[<span class="clsLxrNum">1</span>],
+    (outerArgs[<span class="clsLxrNum">2</span>] <span class="clsLxrKeyword">instanceof</span> Parameter) ?
+      arguments[outerArgs[<span class="clsLxrNum">2</span>].i - <span class="clsLxrNum">1</span>] : outerArgs[<span class="clsLxrNum">2</span>],
+    (outerArgs[<span class="clsLxrNum">3</span>] <span class="clsLxrKeyword">instanceof</span> Parameter) ?
+      arguments[outerArgs[<span class="clsLxrNum">3</span>].i - <span class="clsLxrNum">1</span>] : outerArgs[<span class="clsLxrNum">3</span>]);
+...
+}
+          </code></pre>
+          <p>case 3 で <code>Parameter::i</code> プロパティを使った式が出てきました。これが一般形で、これ以降はこのケースと同じ要領でコードを書くことになります</p>
+          <p>ある程度実装できたものとして使ってみましょう。<code>limitedBind</code> の使用には少し慣れが必要ですが、うまく使えるようになればかなり強力です。またわざとらしい例ですが:</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> one(a) {
+  <span class="clsLxrKeyword">return</span> a;
+}
+<span class="clsLxrKeyword">function</span> ten(a, b) {
+  <span class="clsLxrKeyword">return</span> a + <span class="clsLxrNum">10</span> * b;
+}
+<span class="clsLxrKeyword">function</span> hundread(a, b, c) {
+  <span class="clsLxrKeyword">return</span> a + <span class="clsLxrNum">10</span> * b + <span class="clsLxrNum">100</span> * c;
+}
+
+limitedBind(one, <span class="clsLxrNum">42</span>)();   <span class="clsLxrComment">// 42</span>
+limitedBind(one, _1)(<span class="clsLxrNum">42</span>); <span class="clsLxrComment">// 42</span>
+
+limitedBind(ten, <span class="clsLxrNum">6</span>, <span class="clsLxrNum">3</span>)();       <span class="clsLxrComment">// 36</span>
+limitedBind(ten, _2, _1)(<span class="clsLxrNum">6</span>, <span class="clsLxrNum">3</span>); <span class="clsLxrComment">// 63</span>
+
+limitedBind(hundread, _3, _2, _1)(<span class="clsLxrNum">3</span>, <span class="clsLxrNum">8</span>, <span class="clsLxrNum">6</span>); <span class="clsLxrComment">// 386</span>
+limitedBind(hundread, _1, _1, _1)(<span class="clsLxrNum">6</span>);       <span class="clsLxrComment">// 666</span>
+
+limitedBind(
+  limitedBind(
+    limitedBind(
+      hundread, _3, _2, _1 <span class="clsLxrComment">// 1 &lt;-&gt; 3</span>
+    ), _2, _1, _3          <span class="clsLxrComment">// 1 &lt;-&gt; 2</span>
+  ), _1, _3, _2            <span class="clsLxrComment">// 2 &lt;-&gt; 3</span>
+)(<span class="clsLxrNum">3</span>, <span class="clsLxrNum">8</span>, <span class="clsLxrNum">6</span>);                <span class="clsLxrComment">// 638</span>
+          </code></pre>
+          <p><code>limitedBind</code> と合成関数を組み合わせて使えば無限に関数を作成することができます</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>引数の加工</h2>
+          <p>これで話が終われば気分がいいのですがまだ先があります。引数束縛の4番目と5番目のパターンの実装が残っています。他の3つのパターンでは引数をそのまま渡すことしかしませんでしたが、このパターンでは引数の束縛ではなく、引数に手を加えてから束縛対象の関数に渡します。例えば4番目のパターンは <code>bind(func, _1 + 5)</code> のような使い方を想定しています。これは第1引数に数値5を足してから <code>func</code> を呼び出して値を返すような関数を生成します。しかしこの式はコンパイルできません。<code>_1 + 5</code> がどうにもならないからです。<code>_1</code> は勝手に作ったオブジェクトですから、加算のための二項演算について JavaScript インタープリタは面倒を見てくれません。5番目のパターンについても同じことが言えます</p>
+          <p>4番目のパターンについてこの問題を解決するには非直感的な式を導入せざるを得ません。例えば足し算の例であれば <code>bind(func, _1.plus(5))</code> とか <code>bind(func, Lambda.plus(_1, 5))</code> といった感じです。しかしこの解決策は結局は使い物にならないことが分かるでしょう。前の3パターンでは引数はどんなオブジェクトでも使えましたが (<code>Parameter</code> のインスタンス以外)、加算演算などは数値や文字列でしか使わないのです。そんな限られた状況のために骨を折るのは嫌でしょう。ただ5番目のパターンについては解決策がそれほど適用範囲の狭いものではありません。例えば次のような使い方に落ち着くことができます</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// print は文字列を出力する関数</span>
+bind(print, _1.toUpperCase()); <span class="clsLxrComment">// 常に大文字で出力する関数</span>
+
+<span class="clsLxrComment">// これを以下のように書く</span>
+bind(print, _1.invoke(String.prototype.toUpperCase, []));
+          </code></pre>
+          <p>この書き方もやはり自然とは言えませんが、算術演算子よりも一般的であることは確かです。ここで注目すべきは <code>_1.invoke()</code> の部分です。<code>bind</code> はこの呼び出しの戻り値を引数として受け取るので、「第1引数の String.prototype.toUpperCase メソッドを引数無しで呼んだ結果」ということを表現するためのオブジェクトを <code>_1.invoke</code> が返すようにすればいいでしょう。そのようなオブジェクトのコンストラクタは例えば以下のようになります:</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Invocation(i, method, args) {
+  <span class="clsLxrKeyword">this</span>.i_ = i;           <span class="clsLxrComment">// 何番目の引数か</span>
+  <span class="clsLxrKeyword">this</span>.method_ = method; <span class="clsLxrComment">// 呼び出すメソッド</span>
+  <span class="clsLxrKeyword">this</span>.args_ = args;     <span class="clsLxrComment">// その引数</span>
+}
+          </code></pre>
+          <p><code>Invocation</code> オブジェクトが引数として渡されると、<code>bind</code> はその部分の引数が加工するものとして扱います。しかし <code>bind</code> のクライアントは実際には <code>Invocation</code> オブジェクトが生成されていることを知りません (ソースを読めば分かりますが)。勿論それでいいわけです。<code>Parameter</code> オブジェクトもそうですがクライアントがこれらの内部事情について知る必要は全くありません</p>
+          <p>この5番目のパターンの実装は非常に複雑であるので、本稿ではここまでとし、別の機会に紹介しようと思います。興味のある方は他の処理系や関数型言語を見て挑戦してください</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>関数の変形の応用例</h2>
+          <p>例えば JavaScript で絵を描くアプリケーションを作っているとしましょう。あなたは各操作の実装を終えており、以下のような関数が揃えてあります</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// ドットを打つ</span>
+<span class="clsLxrKeyword">function</span> setPixel(x, y, color) {...}
+<span class="clsLxrComment">// 直線を引く</span>
+<span class="clsLxrKeyword">function</span> drawLine(x1, y1, x2, y2, color) {...}
+<span class="clsLxrComment">// 長方形を描く</span>
+<span class="clsLxrKeyword">function</span> drawRectangle(x1, y1, x2, y2, color) {...}
+<span class="clsLxrComment">// 正円を描く</span>
+<span class="clsLxrKeyword">function</span> drawCircle(x, y, r, color) {...}
+<span class="clsLxrComment">// テキストを描く</span>
+<span class="clsLxrKeyword">function</span> drawText(x, y, text, color) {...}
+...
+          </code></pre>
+          <p>これらの関数はユーザの操作と対応しており、ユーザはコマンドという概念で各操作を捉えています。ここであなたはユーザの作業を自動化するマクロを実装しようとします。マクロは一連のコマンドの実行ですから、これらの関数を順番に呼び出すことで実装できます。この連続呼び出しを単純なループで実現するために、あなたは各コマンドに数値を割り当てて、配列に記憶するようにするかもしれません</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; commandList.length; ++i) {
+  executeCommand(commandList[i]);
+}
+          </code></pre>
+          <p>しかしこのままではコマンドの順番が分かるだけで、各コマンドの詳細が分かりません。例えばドットを打つコマンドなら、点の座標と色が必要になるはずです。つまり各コマンドは種類と付加情報で構成されるわけです。あなたはそのようなデータ構造で各コマンドを表現し、配列に押し込もうとしますがうまくいきません。付加情報の量や与え方は<em>コマンドによって異なるのです</em>。これは各関数の引数がバラバラであることが原因ですが、無理に引数の数を統一することはあまり良いことではありません。JavaScript 1.5 では引数の数はチェックされないので、コマンド ID と引数の配列を1セットにしたデータ構造というのもアリですが、色々大変です</p>
+          <p>ここで引数束縛の出番です。引数リストがバラバラであれば、必要な情報で束縛して引数を全部削ってしまえばいいのです。つまり必要な情報は全て関数に覚えておいて貰うのです</p>
+          <pre><code class="clsSample">
+commandList.push(bind(setPixel, <span class="clsLxrNum">50</span>, <span class="clsLxrNum">100</span>, red));
+commandList.push(bind(drawLine, <span class="clsLxrNum">70</span>, <span class="clsLxrNum">100</span>, <span class="clsLxrNum">110</span>, <span class="clsLxrNum">100</span>, blue));
+...
+          </code></pre>
+          <p>コマンドリストには引数を受け取らない関数が収められることになります。マクロを実行するときには、このリストの各要素に対して<strong>引数無しの関数呼び出し</strong>をするだけです。付加情報のためのデータ構造やコマンド ID も必要ありません</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>引数が0の関数</h2>
+          <p>関数の合成と引数の束縛について説明してきましたが、本節の最初で確認した関数の持つ意味を思い出してください。「呼び出しにより自分コードを実行する」のが関数の役目であり本質 (の1つ) です。変形によって新たに生み出された関数の持つ意味はオリジナルのものとどう違うのでしょうか。はじめに出てきた和を返す関数の意味は「2つの値を足す」でした。片方の引数を n で固定したものは「n ともう1つの値を足す」で、両方を n1 、n2 で固定したものは「n1 と n2 を足す」であると考えられます。引数が減少するにつれ、関数の意味に含まれる曖昧さが除去されていくのが分かると思います。引数の減少が限界まで進んだもの、つまり引数が0になった関数の意味は非常にはっきりしており、そこには曖昧さなどありません</p>
+          <p>抽象的なことを書きましたが、要するに引数の個数を0 (またはそれに近い値) にまで落とした関数は単一の命令とみなすことができます。それが先に述べたコマンドになるわけです</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>this 引数の束縛</h2>
+          <p>本節で紹介したテクニックは関数に対して適用するものですが、勿論メソッドにも使えます。ところでメソッドには普通の関数とは異なり、適用オブジェクトを指す <code>this</code> 引数というものがあります。これは引数リストには現れませんが、メソッド中であれば <code>this</code> で参照でき、束縛も可能です。ただしここで考察した <code>limitedBind</code> はそのままでは使えません</p>
+          <p><code>this</code> 引数がオブジェクトを指すのはそのオブジェクトに対してメソッド呼び出しを行う場合ですが、それ以外の場合、メソッドはどのオブジェクトにも結び付けられていない宙ぶらりの状態です。コンストラクタ <code>C</code> で生成したオブジェクトに対して呼び出すメソッドは <code>C.prototype</code> などに保持されているのが普通ですが (3章を読んでください)、別に他のオブジェクトについて呼び出しても構わないのです。これには ECMAScript 3rd Edition で導入された <code><a href="../../ref/jscript/object/function.html#apply">Function::apply</a></code> 、<code><a href="../../ref/jscript/object/function.html#call">Function::call</a></code> メソッドを使います。汎用的な関数として <code>limitedBind</code> などに機能を追加しても良いのですが、ここでは別の関数として定義します。ここまで読んでこられた方なら実装は明らかでしょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// bindThis(f : function, obj : object) : function</span>
+<span class="clsLxrKeyword">function</span> bindThis(f, obj) {
+  <span class="clsLxrKeyword">return function</span>() {
+    <span class="clsLxrKeyword">return</span> f.apply(obj, arguments);
+  };
+}
+
+<span class="clsLxrComment">// 使う</span>
+<span class="clsLxrKeyword">var</span> n = <span class="clsLxrNum">42</span>;
+bindThis(Object.prototype.toString, n)(); <span class="clsLxrComment">// "[object Number]"</span>
+bindThis(Number.prototype.toString, n)(); <span class="clsLxrComment">// 42</span>
+bindThis(String.prototype.toString, n)(); <span class="clsLxrComment">// エラー!</span>
+          </code></pre>
+        </div>
+
+        <div class="clsSection2">
+          <h2>ライブラリの置き場所</h2>
+          <p>本節では幾つか関数を作成しましたが、グローバルな名前空間ではちょっと格好が付かないと思われるかもしれません。実はいい場所があるのです。ここです:</p>
+          <pre><code class="clsSample">
+Function.prototype.compose_f_gx = ...;
+...
+Function.prototype.bind = ...;
+Function.prototype.limitedBind = ...;
+Function.prototype.bindThis = ...;
+          </code></pre>
+          <p>私は全て第1引数が関数になるようにこれらの関数を設計しました (とはいえそれ以外にあまり無いのですが)。どうせならあらゆる関数オブジェクトからメソッドとして呼び出せるようにしてみると良いかもしれません</p>
+          <pre><code class="clsSample">
+func.bind(_2, _1)();
+func.bind(_1, _1, _1).compose_f_gx(otherFunc)(n);
+String.prototype.toString.bindThis(text)();
+          </code></pre>
+        </div>
+
+      <!-- 3.1 プロパティとメソッド -->
+      <div id="p3_1">
+        <h1>3.1 プロパティとメソッド</h1>
+        <p>オブジェクト指向が世に現れてから、プログラミングは大きく変わりました。今までのデータ中心アプローチからオブジェクト (object) と振る舞い (behavior) を念頭に置いた設計がなされるようになり、最近新しく登場した言語はオブジェクト指向として設計されています。オブジェクト指向プログラミングはコードの再利用、抽象化、分散を可能にし、現代の高速な開発サイクルにおいてよく使用されます</p>
+        <p>JavaScript はオブジェクト指向言語です。また、スクリプトであること、仕様が緩いことから他の言語には見られない高級さを達成しています。JavaScript に取り組んでいる間はオブジェクトから逃れることはできません。あなたがオブジェクトに接していないと思っていても、幾つものオブジェクトがスクリプトエンジン、ホストで活動しています。しかしそれらを「オブジェクト」として扱うことができれば何も難しいことは無いのです</p>
+        <p>この章では JavaScript におけるオブジェクト指向、特にどのようにすれば他の言語のようにオブジェクトを扱うことができるのかについて解説します。オブジェクト指向についての (言語非依存の) 理論や仕組みは既知のものとします</p>
+
+        <div class="clsSection2">
+          <h2>プロパティ</h2>
+          <p>あなたが JavaScript にかじりついて1週間以上経っていれば <em>プロパティ (property)</em> がどういうものか、少なくとも JavaScript でどんな役割を持っているかご存知でしょう。プロパティはその名の通り、「特性」、「特質」といったもので、「オブジェクト O のプロパティ P」というと、「<code>O.P</code> は O というオブジェクトの特性 P を表す」となります。プロパティは常にオブジェクトに関連付けられており、普通はオブジェクトが無い状態でプロパティは存在できません</p>
+          <p>他の言語のプログラマは「でもプロパティなんて聞いたこと無い。データメンバ (メンバ変数、フィールド) じゃないの?」と言われるかもしれませんね。どちらもオブジェクトの内部表現を表すものですが、違いはどこにあるのでしょうか</p>
+          <p>実は「プロパティ」は JavaScript や VBScript などの超高級言語にしか無い概念なのです。データメンバやメンバ変数、フィールドが実データそのものであるのに対し、<em>プロパティはデータではありません</em>。プロパティの実体はゲッタやセッタといったデータメンバを直接操作するメソッド呼び出しであり、オブジェクトの「状態」ではなく「操作」なのです。超高級言語はこれらの公開演算を隠蔽し、スクリプトからはあたかも変数のように見えるようにしているのです。例えば以下のコードはプロパティに値を設定するものですが、内部では見た目以上に多くのことが行われています</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> arr = <span class="clsLxrKeyword">new</span> Array();
+arr.length = <span class="clsLxrNum">0</span>; <span class="clsLxrComment">// セッタが呼び出され、</span>
+                <span class="clsLxrComment">// 新しい値 (0) がオブジェクトに通知され、</span>
+                <span class="clsLxrComment">// 値の正当性がチェックされ、</span>
+                <span class="clsLxrComment">// 配列長さが変化するので各要素のメモリを開放し、</span>
+                <span class="clsLxrComment">// ... 以下続く</span>
+          </code></pre>
+          <p>まぁ、色々処理が行われますがゲッタとセッタというものがあることだけ覚えておいて下さい。読み取り専用のプロパティはセッタを用意しない (或いは用意しても何もしない) ことで実現できます。ECMAScript はゲッタとセッタをソースレベルで定義する方法を用意していませんが、JavaScript 1.5 や Windows スクリプトレットは独自の構文を使用してゲッタとセッタを定義できるようにしています。これらについては <a href="./4.html">3.4 アクセスレベル</a> で解説します</p>
+          <p>以上のことからプロパティは純粋にオブジェクトの内部表現を表すものではないことが分かりますが、以降第4節までプロパティを単純にオブジェクトのデータとして扱うことにします。また、「読み取り専用」などのプロパティの挙動は言語レベルでは <em>属性 (attribute)</em> と呼ばれる概念で表現されます。コードレベルでこれらの属性を調べたり、設定したりすることはできません</p>
+          <table border="1" cellspacing="1">
+            <caption><span class="clsResourceNo">Table 3.1</span> プロパティ属性 (<cite>ECMAScript 3rd Edition 8.6.1 Property Attributes</cite> より作成)</caption>
+            <tr><th>属性</th><th>説明</th></tr>
+            <tr><td>ReadOnly</td><td>プロパティは読み取り専用です。<em>コードレベルでの</em> 値の設定は無視されます。ただし「定数」や「永久に変更されない」ことを意味するのではありません。ホストなどがこのプロパティの値を変更することもあります</td></tr>
+            <tr><td>DontEnum</td><td><code><a href="../../ref/jscript/statement/forin.html">for...in</a></code> ステートメントで列挙できません</td></tr>
+            <tr><td>DontDelete</td><td><code><a href="../../ref/jscript/operators.html#p_unary">delete</a></code> 演算子でオブジェクトから削除できません</td></tr>
+            <tr><td>Internal</td><td>内部的に使用されるプロパティで名前がありません。また、コードレベルで直接アクセスすることはできません。この属性の付いた内部プロパティ、内部メソッドは <span class="clsResourceNo">Table 3.2</span> の通りです</td></tr>
+          </table>
+          <table class="clsSpaceBottom" border="1" cellspacing="1">
+            <caption><span class="clsResourceNo">Table 3.2</span> 内部プロパティ及び内部メソッド (<cite>ECMAScript 3rd Edition 8.6.2 Internal Properties and Methods</cite> より作成)</caption>
+            <tr><th>プロパティ</th><th>説明</th></tr>
+            <tr><td>[[Prototype]]</td><td>このオブジェクトのプロトタイプです</td></tr>
+            <tr><td>[[Class]]</td><td>このオブジェクトの種類を表す文字列です</td></tr>
+            <tr><td>[[Value]]</td><td>このオブジェクトの内部表現です</td></tr>
+            <tr><td>[[Get]]( <var>PropertyName</var> )</td><td><var>PropertyName</var> で表される名前のプロパティの値を返します</td></tr>
+            <tr><td>[[Put]]( <var>PropertyName</var> , <var>Value</var> )</td><td><var>PropertyName</var> で表される名前のプロパティに <var>Value</var> に設定します</td></tr>
+            <tr><td>[[CanPut]]( <var>PropertyName</var> )</td><td><var>PropertyName</var> で表される名前のプロパティに [[Put]] 操作が可能であるかを返します</td></tr>
+            <tr><td>[[HasProperty]]( <var>PropertyName</var> )</td><td>このオブジェクトが <var>PropertyName</var> で表される名前のプロパティを持っているかどうかを返します</td></tr>
+            <tr><td>[[Delete]]( <var>PropertyName</var> )</td><td><var>PropertyName</var> で表される名前のプロパティをオブジェクトから削除します</td></tr>
+            <tr><td>[[DefaultValue]]( <var>Hint</var> )</td><td>オブジェクトのデフォルト値を返します</td></tr>
+            <tr><td>[[Construct]]( <var>...</var> )</td><td>オブジェクトを作成します。この内部メソッドは <code><a href="../../ref/jscript/operators.html#p_unary">new</a></code> 演算子により呼び出されます。各コンストラクタがこのメソッドを実装します</td></tr>
+            <tr><td>[[Call]]( <var>...</var> )</td><td>オブジェクトに設定されているコードを実行します。この内部メソッドは関数呼び出し式により呼び出されます。各関数がこのメソッドを実装します</td></tr>
+            <tr><td>[[HasInstance]]( <var>Value</var> )</td><td><var>Value</var> がその動作をこのオブジェクトに委譲しているかどうかを返します。ネイティブオブジェクトの中では <code>Function</code> オブジェクトだけがこのメソッドを実装しています</td></tr>
+            <tr><td>[[Scope]]</td><td>スコープです</td></tr>
+            <tr><td>[[Match]]( <var>String</var> , <var>Index</var> )</td><td>正規表現マッチをテストし、結果を返します</td></tr>
+          </table>
+          <p>内部プロパティ、内部メソッドは実際のコードには全く登場しないものですが、これらを意識するとスクリプトの表面上の動作も説明できるようになります。例えばスコープチェインやプロトタイプチェイン、コンストラクタなどは根本が分かっていないとなかなか理解の難しい要素です。以降の解説ではこれらのプロパティを使うことがあります</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>メソッド</h2>
+          <p>JavaScript の <em>メソッド (method)</em> は呼び出し可能なプロパティに過ぎません。メソッドが普通の関数と異なるのは特定のオブジェクトを介して呼び出される点です。関数がメソッドとして呼び出された場合は関数中の <code>this</code> はそのオブジェクトを指すようになります</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>;
+}
+
+<span class="clsLxrKeyword">var</span> obj = <span class="clsLxrKeyword">new</span> String();
+obj.bar = foo;
+
+foo();         <span class="clsLxrComment">// 最上位オブジェクト</span>
+obj.bar();     <span class="clsLxrComment">// obj</span>
+foo.call(obj); <span class="clsLxrComment">// obj</span>
+          </code></pre>
+          <p><code>Function::apply</code> 、<code>Function::call</code> メソッドを使うと好きなオブジェクトを介してメソッドを呼び出すことができます。これらのメソッドは ECMAScript 3rd Edition で採り入れられたもので、スクリプトエンジンがサポートしていない場合も考えられます。しかしこれらのメソッドは比較的簡単にエミュレートできます。<code>Function::apply</code> メソッドの簡単な実装は以下のようになるでしょう</p>
+          <pre><code class="clsSample">
+Function.prototype.__apply = <span class="clsLxrKeyword">function</span>(
+    <span class="clsLxrComment">/* object */</span> oThis <span class="clsLxrComment">/* = null */</span>, <span class="clsLxrComment">/* Array */</span> arrArgs <span class="clsLxrComment">/* = null */</span>) {
+  <span class="clsLxrKeyword">if</span>(oThis == <span class="clsLxrNum">null</span> || oThis == <span class="clsLxrNum">undefined</span>) { <span class="clsLxrComment">// グローバルオブジェクトに適用</span>
+    <span class="clsLxrKeyword">if</span>(arrArgs == <span class="clsLxrNum">null</span> || arrArgs == <span class="clsLxrNum">undefined</span>)
+      <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>();
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>(arrArgs);
+  }
+  <span class="clsLxrKeyword">if</span>(!(oThis <span class="clsLxrKeyword">instanceof</span> Object))
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">undefined</span>;  <span class="clsLxrComment">// 実際は throw TypeError()</span>
+
+  oThis.$00000000 = <span class="clsLxrKeyword">this</span>;
+
+  <span class="clsLxrKeyword">var</span> oReturn;
+  <span class="clsLxrKeyword">if</span>(arrArgs == <span class="clsLxrNum">null</span> || arrArgs == <span class="clsLxrNum">undefined</span>)
+    oReturn = oThis.$00000000();
+  <span class="clsLxrKeyword">else if</span>(!(arrArgs <span class="clsLxrKeyword">instanceof</span> Array))
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">undefined</span>;  <span class="clsLxrComment">// 実際は throw TypeError()</span>
+  <span class="clsLxrKeyword">else</span> {
+    <span class="clsLxrComment">// 関数呼び出し式を作る</span>
+    <span class="clsLxrKeyword">var</span> strInvokeExpression = <span class="clsLxrQuote">"oThis.$00000000("</span>;
+    <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; arrArgs.length; ++i) {
+      <span class="clsLxrKeyword">if</span>(i != <span class="clsLxrNum">0</span>)
+        strInvokeExpression += <span class="clsLxrQuote">","</span>;
+      strInvokeExpression += <span class="clsLxrQuote">"arrArgs["</span> + i + <span class="clsLxrQuote">"]"</span>;
+    }
+    strInvokeExpression += <span class="clsLxrQuote">")"</span>;
+    <span class="clsLxrKeyword">var</span> oReturn = eval(strInvokeExpression);
+  }
+
+  <span class="clsLxrKeyword">delete</span> oThis.$00000000;
+  <span class="clsLxrKeyword">return</span> oReturn;
+};
+          </code></pre>
+          <p>本節以降では <code>Function::call</code> メソッドが度々登場するので動作を覚えておいて下さい</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>コンストラクタ</h2>
+          <p>HTML に JavaScript を埋め込む場合、<code>window</code> や <code>document</code> といったオブジェクトが最初から与えられます。プロパティやメソッドはオブジェクトがあって初めて使うことできます。<acronym title="Document Object Model">DOM</acronym> のようにトップレベルのオブジェクトが幾つか与えられ、そのオブジェクトから他の非公開オブジェクトが取得できるようになっているものを <em>オブジェクトモデル</em> といいます。オブジェクトモデルにおいてトップレベルオブジェクト以下にある各オブジェクト (<code>document</code> とか <code>alert</code>) は特別に作成する必要はありません</p>
+          <p>しかし、オブジェクトモデルに属さ<strong>ない</strong>オブジェクトも存在します。HTML ウェブページのために JavaScript でスクリプトを作成する大抵の人は、ホストオブジェクトとそのメソッド呼び出しだけでスクリプトを書きます。しかし JavaScript には ECMAScript で定義されたネイティブオブジェクトも用意されています。これらのオブジェクトを作成するには <em>コンストラクタ (ctor/constructor)</em> を呼び出して自分でオブジェクトを作成する必要があります</p>
+          <p>オブジェクトを利用するクライアントはオブジェクトを作成し、メソッドを呼び出すことでスクリプトを完成させます。ただ、HTML/DOM のオブジェクトは作成する必要が無いため、JavaScript の初心者はオブジェクトの作成を行う機会が少なくなっているのです。ECMAScript オブジェクトや自前で定義したオブジェクトを使うと実行環境の差を埋めやすくなります。これは HTML/DOM の実装がバラバラだからです。ECMAScript オブジェクトの仕様は比較的小さなもので、解釈の余地もあまりありません。自作オブジェクトについては仕様と実装を切り離すことができないため、正しくオブジェクトを定義すれば実行環境間の問題を完全に回避できます</p>
+          <p>JavaScript のオブジェクト指向における3番目の基本事項は「オブジェクトの作成 (インスタンス作成)」です。そしてオブジェクト作成のメカニズムは非常に簡潔なものです。JavaScript でオブジェクトを作成するのはコンストラクタであり、コンストラクタ自体は見た目はただの関数 (内部メソッド[[Construct]]を実装したオブジェクト) です。コンストラクタを呼び出すには普通の関数呼び出し式ではなく <code>new</code> 演算子を使います。例えば <code>String</code> コンストラクタを呼び出すには次のようにします</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> obj = <span class="clsLxrKeyword">new</span> String();
+          </code></pre>
+          <p>コンストラクタはオブジェクトの作成に成功すると新しく作成したインスタンスを返します。クライアントはこのインスタンスを使って仕事をするだけです</p>
+          <p>基本事項はこんなところです。次節からはオブジェクトを使うだけではなく、オブジェクトを定義する方法について述べます</p>
+        </div>
+
+      <!-- 3.2 コンストラクタとプロトタイプ -->
+      <div id="p3_2">
+        <h1>3.2 コンストラクタとプロトタイプ</h1>
+        <p><a href="./1.html">前節</a>ではオブジェクトを作成して使う方法について述べました。あるオブジェクトについてこのような立場をとる人間、オブジェクトをクライアントといいます。クライアントは「顧客」とか「依頼人」という意味です。つまりオブジェクトから見れば「お客」なのです。それ故オブジェクトはクライアントを中心に振舞わなければなりませんし、クライアントとの契約が守れないときはそれなりの対処をしなければいけません (「<a href="../2/">2. 例外</a>」を参照)</p>
+        <p>この節で解説するのはオブジェクトを定義する方法です。JavaScript についてよく知らない多言語プログラマは「JavaScript はオブジェクトのクライアントとしてはまあまあだが、クラスを定義できないから駄目だ」と言うかもしれません。確かに JavaScript にはクラスを定義するための構文が存在しません。しかしそれは言語が貧弱だからではなく、JavaScript がクラスベースではなくプロトタイプベースの設計を選んだからです (JavaScript 2.0 ではクラスが使えますが)。プロトタイプ理論に従えば「オブジェクトを継承」させることも可能なのです。クライアントの前で仕事をするのはクラスではなくオブジェクトであることを忘れないで下さい</p>
+
+        <div class="clsSection2">
+          <h2>コンストラクタの定義</h2>
+          <p><code>new</code> 演算子を使ってコンストラクタ (とクライアントが考えているもの) を呼び出そうとするとコンストラクタの内部メソッド[[Construct]]が呼び出されます。このメソッドが呼び出される以下のように処理が行われます (<cite>ECMAScript 3rd Edition 13.2.2 [[Construct]]</cite> より作成)</p>
+          <ol>
+            <li>オブジェクトを作成し、その内部プロパティ[[Class]]に <code>&quot;Object&quot;</code> を設定する</li>
+            <li>コンストラクタの <code>prototype</code> プロパティがオブジェクトであれば、作成されたオブジェクトの内部プロパティ[[Prototype]]に設定する。オブジェクトでなければ <code>Object::prototype</code> の値が使用される</li>
+            <li>コンストラクタの内部メソッド[[Call]]を呼び出す。引数には[[Construct]]呼び出しに使用されたものが使用される。また <code>this</code> 引数には新しく作成したオブジェクトを使う</li>
+            <li>[[Call]]呼び出しがオブジェクトを返した場合はそのオブジェクトを返す。そうでなければ最初に作成したオブジェクトを返す</li>
+          </ol>
+          <p>これからコンストラクタの定義について述べるわけですが、そのコンストラクタのコードが実行されるのは上記の第3ステップです。つまり制御がコンストラクタ関数に入ったときには既にオブジェクトは作成されています。このオブジェクトは <code>this</code> 引数としてコンストラクタに渡されます。では実際にコンストラクタを記述してみましょう。別に難しいことはありません</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject() {
+  <span class="clsLxrKeyword">this</span>; <span class="clsLxrComment">// 作成されたオブジェクト</span>
+}
+          </code></pre>
+          <p>普通は値を返す必要はありません (上記第4ステップ参照)。呼び出し側は次のようになるでしょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> obj = <span class="clsLxrKeyword">new</span> MyObject;
+obj; <span class="clsLxrComment">// 作成されたオブジェクト</span>
+          </code></pre>
+          <p>引数の括弧がありませんがこれは正しいものです。このようにするとコンストラクタに引数は渡されません</p>
+          <p>これだけではあまり面白くありません。コンストラクタがしなければならないことは「オブジェクトを作成すること」(概念的な話)、「オブジェクトのメンバを初期化すること」、「オブジェクトが作成できないときに何か対処すること」の3つです。素直な設計では作成はコンストラクタが呼び出されたときに終了しているので、ここでは後の2つについてコードを書くことにしましょう。メンバの初期化は <code>this</code> 引数にプロパティをくっつけるだけです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject(n) {
+  <span class="clsLxrKeyword">this</span>.myProperty = n; <span class="clsLxrComment">// プロパティ</span>
+}
+
+<span class="clsLxrKeyword">var</span> obj = <span class="clsLxrKeyword">new</span> MyObject(<span class="clsLxrNum">7</span>);
+obj.myProperty; <span class="clsLxrComment">// 7</span>
+          </code></pre>
+          <p>コンストラクタは関数でもあるので「<a href="../1/">1. 関数</a>」で述べたテクニックが全て使えます。エラーハンドリングについては省略します</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>メソッドの定義</h2>
+          <p>プロパティと同じ方法でメソッドも定義できるのではないでしょうか。例えば次のようなコードが考えられます</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject() {
+  <span class="clsLxrKeyword">this</span>.myMethod = <span class="clsLxrKeyword">function</span>() {
+  };
+}
+
+<span class="clsLxrKeyword">var</span> obj = <span class="clsLxrKeyword">new</span> MyObject();
+obj.myMethod(); <span class="clsLxrComment">// 呼び出す</span>
+          </code></pre>
+          <p>このメソッド呼び出しは正しく動作しますが JavaScript のメソッド定義からは逸脱しています。例えば以下のコードを見てみましょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> str = <span class="clsLxrKeyword">new</span> String();
+str.concat;                   <span class="clsLxrComment">// concat オブジェクト</span>
+str.hasOwnProperty(<span class="clsLxrQuote">"concat"</span>); <span class="clsLxrComment">// false</span>
+          </code></pre>
+          <p>このことから分かるように <code>String</code> インスタンスの <code>concat</code> メンバはインスタンスの直接のプロパティ (メソッド) ではないのです。しかしそうは見えません。では本当は何処にプロパティがあるのかというと <code>String::prototype</code> オブジェクトのプロパティになっています</p>
+          <pre><code class="clsSample">
+String.<strong>prototype</strong>.hasOwnProperty(<span class="clsLxrQuote">"concat"</span>); <span class="clsLxrComment">// true</span>
+          </code></pre>
+          <p>つまり MyObject コンストラクタは次のようにする必要があったのです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject() {
+  MyObject.prototype.myMethod = <span class="clsLxrKeyword">function</span>() {
+  };
+  <span class="clsLxrComment">// 或いは次でも可</span>
+  <span class="clsLxrKeyword">this</span>.constructor.prototype.myMethod = <span class="clsLxrKeyword">function</span>() {
+  };
+}
+          </code></pre>
+          <p>ただ、1つのコンストラクタにプロトタイプは1つしか無いのでコンストラクタが呼び出される度にメソッドをセットするのは無駄です。次のようにコンストラクタから外してしまうのが一般的です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject() {
+}
+
+MyObject.prototype.myMethod = <span class="clsLxrKeyword">function</span>() {
+};
+          </code></pre>
+        </div>
+
+        <div class="clsSection2">
+          <h2>プロトタイプ</h2>
+          <p><em>プロトタイプ (prototype)</em> はコンストラクタオブジェクト毎に1つずつしか存在しないプロパティです。プロトタイプを使うと同じコンストラクタから作成されたインスタンス (厳密には同じ <code>prototype</code> プロパティを持つインスタンス) に共通のメンバを与えることができます。つまりプロトタイプは静的オブジェクト指向言語のクラスのような役割をしているのです。しかしプロトタイプの仕事はこれだけではありません</p>
+          <p>コンストラクタとプロトタイプは密接に結びついており、コンストラクタから作成されたオブジェクトはそのコンストラクタに固有なプロトタイプ (例えば <code>MyObject.prototype</code>) を参照します。この参照は内部プロパティ[[Prototype]]で普通はコード上には現れないものです (JavaScript 1.3 は <code>__proto__</code> プロパティとしてこの参照を公開しています)。そして上記の myMethod のようにコンストラクタのプロトタイプにセットされたメンバはこの参照を介して探索されます。具体的には以下のようなことが起こります</p>
+          <ol>
+            <li>オブジェクトのメンバにアクセスしようとする。実装は与えられた名前のプロパティがオブジェクトにあるか調べる (上の例の場合は<strong>無い</strong>)</li>
+            <li>見つからなかった場合はプロトタイプオブジェクトから与えられた名前のメンバを探す (上記の場合は MyObject.prototype.myMethod が見つかる)</li>
+            <li>それでも見つからない場合はプロトタイプのプロトタイプから探す</li>
+            <li>以下、プロトタイプが無くなるまで続ける。プロトタイプが無い場合は内部プロパティ[[Prototype]]には <code>null</code> がセットされている</li>
+          </ol>
+          <p>このようなプロトタイプの繋がりを勿体付けて <em>プロトタイプチェイン (prototype chain)</em> と呼びます。プロトタイプチェインを使うと同じプロトタイプチェインを辿ることのできるオブジェクトの間に階層的な関係を持ち込むことができます</p>
+          <p>では簡単な例で少し復習してみましょう。以下は人間オブジェクトの例です</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;
+}
+
+<span class="clsLxrComment">// 年齢を返すメソッド</span>
+Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>.m_nAge;
+};
+
+<span class="clsLxrKeyword">var</span> Don = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">22</span>);   <span class="clsLxrComment">// 勿論これは冗談</span>
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">21</span>);
+
+Don.getAge == Exeal.getAge; <span class="clsLxrComment">// true</span>
+Don.getAge();               <span class="clsLxrComment">// 22</span>
+          </code></pre>
+          <p>最後の2行では Don インスタンスから getAge プロパティを探しますが、失敗します。次に Don のプロトタイプ Person::prototype (= Don.__proto__) から探し、プロパティを見つけます</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>クラスメンバ</h2>
+          <p><em>クラスメンバ</em> (静的メンバ) はインスタンス毎に与えられるメンバではなくクラス毎に存在するメンバです。JavaScript にはクラスが無いのでコンストラクタメンバとでも呼ぶことにしましょう。コンストラクタメンバは特定のインスタンスが無くても存在可能なメンバで <code>constructor</code> プロパティもこれに該当します</p>
+          <p>コンストラクタメンバの定義方法は非常に簡単です。コンストラクタにプロパティを設定するだけです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;
+  <span class="clsLxrKeyword">if</span>(Person.m_nPopulation != <span class="clsLxrNum">undefined</span>)
+    ++Person.m_nPopulation;
+}
+
+Person.m_nPopulation = <span class="clsLxrNum">0</span>;
+
+<span class="clsLxrKeyword">var</span> Don = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">22</span>);
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">21</span>);
+
+Person.m_nPopulation; <span class="clsLxrComment">// 2</span>
+Don.m_nPopulation;    <span class="clsLxrComment">// 残念ながらこれは駄目</span>
+          </code></pre>
+        </div>
+
+        <div class="clsSection2">
+          <h2>継承</h2>
+          <p>何度か書きましたが JavaScript にはクラスがありません。代わりにあるのはプロトタイプです。静的なオブジェクト指向言語ではクラス定義を継承しますが、プロトタイプベース言語ではプロトタイプベースの継承を行います</p>
+          <p>クラス <var>D</var> がクラス <var>B</var> のメンバを <em>継承 (inheritance)</em> すると、クラス <var>D</var> でメンバを定義しなくてもクラス <var>D</var> のインスタンスはクラス <var>B</var> のインスタンスが持つメンバを持つようになります。継承はオブジェクト指向における再利用性を実現している概念で、クラスベース言語ではクラスを <em>派生</em> させることでメンバの継承を行います</p>
+          <p>ではプロトタイプベース言語でメンバを継承するにはどうすればいいのでしょうか。例えばクライアントが次のようなコードを書けるようにしたいのです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;
+}
+
+Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>.m_nAge;
+};
+
+<span class="clsLxrKeyword">function</span> Programmer(nAge, strProject) {
+  <span class="clsLxrComment">/* Person メンバの継承を実現するコード */</span>
+}
+
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Programmer(<span class="clsLxrNum">21</span>, <span class="clsLxrQuote">"EJS"</span>);
+Exeal.getAge();
+          </code></pre>
+          <p>まずはプロパティの継承を考えましょう。以下のようにすれば巧くいくような気がします</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;
+}
+
+<span class="clsLxrKeyword">function</span> Programmer(nAge, strProject) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;             <span class="clsLxrComment">// 真似する</span>
+  <span class="clsLxrKeyword">this</span>.m_strProject = strProject; <span class="clsLxrComment">// 新しく追加するプロパティ</span>
+}
+          </code></pre>
+          <p>しかしこれでは2つのコンストラクタの間には何の関係もありません。また Person が変更されると Programmer も変更しなければなりません</p>
+          <p>(JavaScript の) コンストラクタの仕事にはプロパティの追加以外にインスタンスの初期化も含まれます。上のような簡単なコンストラクタはただ引数を代入しているだけですが、プロパティの数が増えたり複雑なものになると Programmer コンストラクタで同じコードを書くのは馬鹿らしくなります。それにこのままでは Person コンストラクタのクライアントである Programmer コンストラクタが Person の内部事情について先天的な知識を持つ必要があるので、オブジェクト指向の持つ再利用性を著しく欠いてしまいます。ちょっと嫌な方法ですがここでは Programmer コンストラクタから Person コンストラクタを呼び出してインスタンス初期化の一部委譲することにしましょう。新しく作成されたインスタンスに Person コンストラクタを適用するには以下の2つの方法があります</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// 1つ目</span>
+<span class="clsLxrKeyword">function</span> Programmer(nAge, strProject) {
+  <span class="clsLxrKeyword">this</span>.__super = Person;         <span class="clsLxrComment">// 新インスタンスを介して</span>
+  <span class="clsLxrKeyword">this</span>.__super(nAge);            <span class="clsLxrComment">// 継承元コンストラクタを呼ぶ</span>
+  <span class="clsLxrKeyword">this</span>.constructor = Programmer; <span class="clsLxrComment">// コンストラクタが Person にセットされるので元に戻す</span>
+  <span class="clsLxrKeyword">delete</span> <span class="clsLxrKeyword">this</span>.__super;
+  <span class="clsLxrComment">/* Programmer コンストラクタの処理 */</span>
+}
+
+<span class="clsLxrComment">// 2つ目</span>
+<span class="clsLxrKeyword">function</span> Programmer(nAge, strProject) {
+  Person.call(<span class="clsLxrKeyword">this</span>, nAge);
+  <span class="clsLxrKeyword">this</span>.constructor = Programmer;
+  <span class="clsLxrComment">/* Programmer コンストラクタの処理 */</span>
+}
+          </code></pre>
+          <p>2つ目の方法は ECMAScript 3rd Edition でのみ使用できます</p>
+          <p>さて、少々安直ですがプロパティの継承はできました。次はメソッドの継承です。メソッドの実体は Person.prototype に集められているのでこれを Programmer.prototype にコピーすれば良いような気がしますが、次のようにしても巧くいきません</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">/*
+ *  コンストラクタの定義...
+ */</span>
+
+Programmer.prototype = Person.prototype;
+
+Programmer.prototype.getProjectName = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>.m_strProject;
+};
+
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">21</span>);
+Exeal.getProjectName; <span class="clsLxrComment">// undefined でない!</span>
+          </code></pre>
+          <p>プロトタイプをコピーしようとしても実際には参照されるだけです。Programmer.prototype は Person.prototype の中身を参照しているので、ここにメソッドを追加すると Person にも影響が及んでしまいます</p>
+          <p>勿論参照でなく純粋に複製できたとしても正解ではありません。プロトタイプが継承に使われるのはメンバ探索がプロトタイプチェインを辿るからです。プロトタイプを単純にメソッドの置き場所と考えてはいけません。関連するコンストラクタとプロトタイプは階層的であり、Programmer プロトタイプでの探索に失敗した後、Person プロトタイプを探索するようにしなければいけません。そのためには Programmer プロトタイプのプロトタイプが Person プロトタイプである必要があります。JavaScript なら次のようにすれば良いでしょう</p>
+          <pre><code class="clsSample">
+Programmer.prototype.__proto__ = Person.prototype;
+          </code></pre>
+          <p>「でも ECMAScript 仕様外の機能は使いたくない」という声が聞こえてきそうですが、これ以外にも方法はあります。しかしこれもちょっと嫌な方法ですが次のようにします</p>
+          <pre><code class="clsSample">
+Programmer.prototype = <span class="clsLxrKeyword">new</span> Person();
+          </code></pre>
+          <p>直感的には分かりにくいかもしれないので順に見ていきましょう</p>
+          <ol>
+            <li>Person インスタンスを作成し、Programmer コンストラクタのプロトタイプにセットする</li>
+            <li>Person インスタンスのプロトタイプは Person のプロトタイプである</li>
+            <li>Programmer.prototype のプロトタイプは Person のプロトタイプである</li>
+            <li>Programmer のプロトタイプのプロトタイプは Person のプロトタイプである</li>
+          </ol>
+          <p>嘘みたいな方法ですがちゃんと動きます</p>
+          <pre><code class="clsSample">
+Programmer.prototype = <span class="clsLxrKeyword">new</span> Person();
+
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Programmer(<span class="clsLxrNum">21</span>, <span class="clsLxrQuote">"EJS"</span>);
+Exeal.getAge();          <span class="clsLxrComment">// 21</span>
+Exeal.getProjectName();  <span class="clsLxrComment">// "EJS"</span>
+Exeal <span class="clsLxrKeyword">instanceof</span> Person; <span class="clsLxrComment">// true</span>
+          </code></pre>
+          <p>「ちょっと嫌な」と書いたのはコンストラクタ呼び出しが新インスタンスの作成以上のことをするからです。例えばコンストラクタメンバで使った m_nPopulation はメンバの継承で1になってしまいます。オブジェクトの構成が簡単であれば色々と対処できますが、継承元のクライアントは継承元のコンストラクタに対して、実際に実用インスタンスを作成するために呼び出したのかメソッドを継承したいだけなのかを通知する手段がありません。この継承の方法に問題が無いのは継承元のコンストラクタがそのように設計されているときだけです。そしてそのようなスペックは継承元が提示しない限りクライアントからは分かりません</p>
+          <p>この方法ではコンストラクタメンバまでは継承されませんがこれは妥当なことと思えます。コンストラクタメンバはコンストラクタごとに存在するのです</p>
+          <p>このように JavaScript における継承は継承元コンストラクタの呼び出しによるプロパティのセットと、プロトタイプによるメソッドの継承の2段階で構成されます</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>多重継承</h2>
+          <p>いくつかのオブジェクト指向言語では多重継承が認められています。多重継承は1度に複数のクラスのメンバを継承します。例えばプログラマのクラスと弁護士のクラスからメンバを継承したクラスのインスタンスは、プログラマとしても弁護士としても活躍することができます</p>
+          <p>多重継承は便利なものですが使い方を間違えると (ほとんど正解が無い場合もある) 混乱を引き起こします。メンバ名の衝突やダイヤモンド継承などの問題から Java には多重継承がありません。そして JavaScript にも多重継承は <em>ありません</em>。これは多重継承にまつわる問題を懸念して仕様から外されたのではなく、プロトタイプチェインが1本の鎖状であることから必然的に不可能になっているものだと思います</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>オーバーライド</h2>
+          <p>メソッドを継承するときに一部のメソッドの動作を変更したいことがあります。例えば人間を表す Person コンストラクタが以下のように定義されているとしましょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person() {
+}
+
+<span class="clsLxrComment">// 眠る</span>
+Person.prototype.sleep = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">this</span>.goToBed();
+};
+          </code></pre>
+          <p>この Person からメンバを継承して Programmer を作ると Programmer インスタンスでも sleep メソッドが使えます。しかしプログラマの寝床はベッドではありません。Programmer インスタンスの場合、「ベッドに行く」という振る舞いを変更しなければいけません。このためには Progammer.prototype にメソッドを設定し直します</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person() {
+}
+
+Person.prototype = <span class="clsLxrKeyword">new</span> Person();
+
+<span class="clsLxrComment">// 眠る</span>
+Programmer.prototype.sleep = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">this</span>.relaxOnYourChair();
+};
+          </code></pre>
+          <p>このようにすると Programmer インスタンスの sleep メソッドの呼び出しでは Programmer.prototype.sleep が呼び出されるようになります。このように継承先でメソッドの定義を変更することを <em>オーバーライド</em> といいます</p>
+          <p>オーバーライドされた元のメソッドを呼び出すには、つまり基底プロトタイプのメソッドを呼び出すには <code>Function::apply</code> か <code>Function::call</code> メソッドを使います</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Programmer();
+
+<span class="clsLxrComment">// 今日はベッドで眠れそう</span>
+Person.prototype.sleep.call(Exeal);
+          </code></pre>
+          <p>ただしこの呼び出し自体は Programmer が Person を継承しているかどうかを何も考慮していません。Java には <code>super</code> キーワードがあり、基底クラスにアクセスできますが ECMAScript の仕様には基底コンストラクタをポイントするための仕組みがありません</p>
+          <p>プロパティはオーバーライドできません。継承先でプロパティを定義し直すと単純に上書きになります</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>残りの話題</h2>
+          <p>JScript 、JavaScript 、ECMAScript におけるオブジェクト指向のオフィシャルな (?) 話題は以上のようなものです。JavaScript のメンバの種類、コンストラクタとプロトタイプ、プロトタイプチェインによる継承が可能になりました。これらを習得したことで (習得して頂けましたね?) あなたは JavaScript のオブジェクトを自由に操り、仕事をさせることができます。次節からは更にオブジェクトの実装側のテクニックを取り上げていくことにします</p>
+        </div>
+
+      <!-- 3.3 アクセスレベル -->
+      <div id="p3_3">
+        <h1>3.3 アクセスレベル</h1>
+        <p>世の中には知らない方が良いことがあります。自動販売機ではお金を入れてボタンを押せば目的の商品は得られます。自動販売機の内部事情について、あなたの知識が皆無でも商品は手に入ります</p>
+        <p>オブジェクトの実装者が望むことはオブジェクトの機能をクライアントに提示することであり、クライアントが知りたいことはオブジェクトが持っている機能です。クライアントに公開されているオブジェクトであればあらゆるオブジェクトはこの原則に基づきます。オブジェクトとクライアントの間には (普通) これ以上の情報交換は必要ありません。この種の情報交換量を抑えるために実装側ができることは、オブジェクトの内部事情を隠してしまうことです。オブジェクトは自分が提供できる機能を含む最小限の情報だけを公開し、公開する必要の無い細かい実装はその存在自体をクライアントから隠蔽するのです</p>
+
+        <div class="clsSection2">
+          <h2>public メンバ、private メンバ</h2>
+          <p>オブジェクトのメンバにはクライアントに公開されているものやクライアントに対して非公開になっているものがあります。<em>公開 (public) メンバ</em> についてクライアントは制限なしにアクセスできます。メソッドであれば自由に呼び出すことができ、プロパティであれば読み取り、或いは書き込みが可能です。これに対して <em>非公開 (private) メンバ</em> はクライアントからは一切アクセスできません。クライアントに提示する必要の無いメンバをこの private メンバにすることでクライアントから隠すことができます</p>
+          <p>JavaScript には非公開メンバを定義する公式の方法がありません。私が考えた代替案には以下のものがあります:</p>
+          <ul>
+            <li>名前付け規約</li>
+            <li>専用の名前空間を使う</li>
+            <li>コンストラクタ内で非公開メンバを <code>var</code> 宣言し、ゲッタ、セッタをオブジェクトにセットする</li>
+            <li>コンストラクタ内で非公開メンバの集合を <code>var</code> 宣言し、参照テーブルを使う</li>
+          </ul>
+          <p>以下、順に見ていくことにしましょう</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>名前付け規約</h2>
+          <p>これは最もよく用いられる方法です。例えば非公開メンバの名前をアンダースコアで始めることにします</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>._nAge = Number(nAge);
+}
+Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>._nAge;
+};
+          </code></pre>
+          <p>安直な方法ですが意外に説得力があります。「アンダースコアで始まる名前のメンバはむやみに変更しないで下さい」というようなコメントが書かれていることもあります。ここまでされるとコードを見る側は private (とされている) メンバに直接アクセスしようなどと思わなくなります</p>
+          <p>また、ECMAScript の文法から逸脱したことは何もしていないので問題は全く起こりません</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>専用の名前空間を使う</h2>
+          <p>私がよく使う方法です。仕組みは非常に簡単です。オブジェクトに _private という名前のプロパティを追加し、このオブジェクトに非公開メンバを定義します</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>._private = {
+    m_nAge : nAge
+  };
+}
+Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>._private.m_nAge;
+};
+          </code></pre>
+          <p>オブジェクトに直接含まれるプロパティが公開メンバというわけです。文法上の抑止力はありませんが、意図していることはすぐに分かるでしょう。メソッドを private にする場合は以下のようにするしかありません</p>
+          <pre><code class="clsSample">
+Person.prototype._private = {
+  getAge : <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>._private.m_nAge;
+  }
+};
+Person.prototype.doSomethingWithAge = <span class="clsLxrKeyword">function</span>() {
+  Person.prototype._private.getAge.call(<span class="clsLxrKeyword">this</span>);
+  <span class="clsLxrComment">// ...</span>
+};
+          </code></pre>
+          <p>prototype と _private を逆にするのもありですが</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>コンストラクタ内で非公開メンバを var 宣言し、ゲッタ、セッタをオブジェクトにセットする</h2>
+          <p>これはよく紹介される方法ですが、実際に使用されている例は多くありません。コードを見た方が早いでしょう</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">var</span> m_nAge = Number(nAge);
+  <span class="clsLxrKeyword">this</span>.getAge = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> m_nAge;
+  };
+}
+          </code></pre>
+          <p>コンストラクタ内で宣言された局所変数は同じく局所宣言された無名関数から参照されます。このためコンストラクタのスコープが終了しても m_nAge は生き続けます (そしてコンストラクタ呼出し毎に新しい局所変数が用意されます)</p>
+          <p>この方法の問題点はメソッドをプロトタイプではなく、オブジェクト自身にセットしていることです。これでは継承できませんし、ECMAScript のプロトタイプベースのセマンティクスから外れてしまいます。しかしこれらに目を瞑れば完璧に動作します</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>コンストラクタ内で非公開メンバの集合を var 宣言し、参照テーブルを使う</h2>
+          <p>これはあまり見かけない例で、実際に使われているコードもあまりありません。この方法では private メンバの集合をコンストラクタ内で局所宣言します。この集合は同じコンストラクタから作成される全てのオブジェクトの非公開メンバをまとめたものです。この集合の永続性はクロージャを使えば保証できるでしょう (1つ前の方法と同じ)。あとはこの集合に含まれる private メンバとオブジェクトを対応させるだけです。具体的には以下のようになります</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person() {
+  <span class="clsLxrKeyword">var</span> m_cInstances = <span class="clsLxrNum">0</span>;    <span class="clsLxrComment">// インスタンスの通し番号</span>
+  <span class="clsLxrKeyword">var</span> m_arrInstances = []; <span class="clsLxrComment">// 通し番号 -&gt; インスタンスの変換配列</span>
+  <span class="clsLxrKeyword">var</span> m_arrPrivates = [];  <span class="clsLxrComment">// 通し番号 -&gt; 非公開メンバの変換配列</span>
+  <span class="clsLxrKeyword">function</span> findPrivate(oThis) { <span class="clsLxrComment">// インスタンス -&gt; 非公開メンバの変換関数</span>
+    <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; m_arrInstances.length; ++i) {
+      <span class="clsLxrKeyword">if</span>(oThis == m_arrInstances[i])
+        <span class="clsLxrKeyword">return</span> m_arrPrivates[i];
+    }
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">null</span>;
+  }
+
+  <span class="clsLxrComment">// コンストラクタを書き換える</span>
+  Person = <span class="clsLxrKeyword">function</span>(nAge) {
+    m_arrInstances[m_cInstances] = <span class="clsLxrKeyword">this</span>;
+    m_arrPrivates[m_cInstances++] = {
+      m_nAge : Number(nAge)
+    };
+  };
+
+  <span class="clsLxrComment">// メソッドの定義</span>
+  Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> findPrivate(<span class="clsLxrKeyword">this</span>).m_nAge;
+  };
+
+} Person(); <span class="clsLxrComment">// コンストラクタの書き換えを実行</span>
+          </code></pre>
+          <p>最初に4つの局所定義があります。コンストラクタ内にはこれらを参照するメンバがあるので、コンストラクタ終了後もこれらは有効です。ただしこの局所定義は1つあれば十分なもので、コンストラクタが呼び出される度に作成されるべきではありません。最初の呼び出しでのみこれらの局所宣言を評価させるには1回目の呼び出しでコンストラクタ自身を書き換えます。勿論コンストラクタを書き換えても局所定義は有効なままです。これでコンストラクタに1つしか存在しない変数が作成できました</p>
+          <p>実際に呼び出されるコンストラクタでは局所配列 m_arrInstances に自身を追加しています。そしてもう一方の配列 m_arrPrivates に非公開メンバのコレクションを追加しています。このときの添字はインスタンスの通し番号で、インスタンスが作成される度に1増加されます</p>
+          <p>メソッド内で非公開メンバを参照場合は局所関数 findPrivate を使います。この関数はインスタンスを非公開メンバコレクションに変換します。findPrivate の内部ではインスタンスを m_arrInstances から探し、その添字を使って m_arrPrivates からコレクションを取得します</p>
+          <p>コンストラクタ定義の後にコンストラクタを1回以上呼び出すのを忘れないで下さい。またメソッド定義の場所にも注意が必要です。メソッド定義は findPrivate か可視である位置、古いコンストラクタのスコープでなければなりません。且つコンストラクタ書き換えの後ろである必要があります</p>
+          <p>ただ非公開メンバを探すのに少し時間がかかるので効率はあまりよくありません (インスタンスの数に比例して悪くなります)。また、この方法や1つ前の方法では非公開メンバは実際にはインスタンスから離れた場所にあるため、<code>Function::call</code> メソッドなど他のオブジェクトを介してメソッドを呼び出すと不具合が生じます (ただし他のオブジェクトを適用できるかどうかはメソッドの設計者に決定権があります)</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>protected メンバ</h2>
+          <p>1つ事がうまくいくと欲が出るものです。次は <em>限定公開 (protected) メンバ</em> について考えてみましょう。静的オブジェクト指向 (?) において限定公開メンバはそのクラスと派生クラスに対して公開されているメンバです。継承関係を持たないクライアントはアクセスできません</p>
+          <p>限定公開メンバについても正式に定義方法があるわけではありません。私が考えた代替案は次の3つです</p>
+          <ul>
+            <li>名前付け規約</li>
+            <li>専用の名前空間を使う</li>
+            <li>private 参照テーブルを継承先メソッドからも可視にする</li>
+          </ul>
+          <p>以下、順に見ていくことにしましょう</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>名前付け規約</h2>
+          <p>非公開メンバのときと同じです。例えばメンバ名を2つのアンダースコアで始めます</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// 基底コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.__nAge = nAge;   <span class="clsLxrComment">// 限定公開メンバ</span>
+  <span class="clsLxrKeyword">this</span>._oSpouse = <span class="clsLxrNum">null</span>; <span class="clsLxrComment">// 非公開メンバ</span>
+}
+
+<span class="clsLxrComment">// 派生コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Programmer(nAge) {
+  <span class="clsLxrComment">/* 基底コンストラクタの呼び出しは省略 */</span>
+}
+Programmer.prototype = <span class="clsLxrKeyword">new</span> Person;
+Programmer.prototype.doSomethingWithMembers = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">this</span>.__nAge;   <span class="clsLxrComment">// ok</span>
+  <span class="clsLxrKeyword">this</span>._oSpouse; <span class="clsLxrComment">// エラーが起こるわけではないが危険</span>
+};
+          </code></pre>
+          <p>この方法はあまり効果がありません。どっちがどっちか分からなくなります</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>専用の名前空間を使う</h2>
+          <p>これは簡単で、見た目にも分かり易いものです</p>
+          <pre><code class="clsSample">
+<span class="clsLxrComment">// 基底コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Person(nAge_) {
+  <span class="clsLxrKeyword">this</span>._protected = { <span class="clsLxrComment">// 限定公開メンバ</span>
+    nAge : nAge_
+  };
+  <span class="clsLxrKeyword">this</span>._private = {   <span class="clsLxrComment">// 非公開メンバ</span>
+    oSpouse : <span class="clsLxrNum">null</span>
+  };
+}
+
+<span class="clsLxrComment">// 派生コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Programmer(nAge_) {
+  <span class="clsLxrComment">/* 基底コンストラクタの呼び出しは省略 */</span>
+}
+Programmer.prototype = <span class="clsLxrKeyword">new</span> Person;
+Programmer.prototype.doSomethingWithMembers = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">this</span>._protected.nAge;  <span class="clsLxrComment">// ok</span>
+  <span class="clsLxrKeyword">this</span>._private.oSpouse; <span class="clsLxrComment">// エラーが起こるわけではないが危険</span>
+};
+          </code></pre>
+          <p>ただし限定公開メソッドを定義するのが困難になります</p>
+        </div>
+
+        <div class="clsSection2">
+          <h2>private 参照テーブルを継承先メソッドからも可視にする</h2>
+          <p>非公開メンバのときに使ったテクニックはクロージャを使って、非公開メンバにアクセス可能なメンバを限定するというものでした。派生コンストラクタのプロトタイプにもメンバを公開すれば限定公開メンバが実現できそうです</p>
+          <p>考え方は非公開メンバと同じで、限定公開メンバを集めたテーブルを基底コンストラクタの古いコンストラクタに局所定義します。あとはこのテーブルを参照する局所関数 findProtected を継承先コンストラクタに公開するだけです。findProtected への参照を受け取った継承先コンストラクタはこの参照を含むメソッドを定義し、この参照自体も外から隠蔽するためにコンストラクタを書き換えます。以下に非公開メンバと限定公開メンバを使ったコードとモデル図を示します</p>
+          <pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person() {
+  <span class="clsLxrKeyword">var</span> m_cInstances = <span class="clsLxrNum">0</span>;      <span class="clsLxrComment">// インスタンスの通し番号</span>
+  <span class="clsLxrKeyword">var</span> m_arrInstances = [];   <span class="clsLxrComment">// 通し番号 -&gt; インスタンスの変換配列</span>
+  <span class="clsLxrKeyword">var</span> m_arrPrivates = [];    <span class="clsLxrComment">// 通し番号 -&gt; 非公開メンバの変換配列</span>
+  <span class="clsLxrKeyword">var</span> m_arrProtecteds = [];  <span class="clsLxrComment">// 通し番号 -&gt; 限定公開メンバの変換配列</span>
+  <span class="clsLxrKeyword">function</span> findPrivate(oThis) { <span class="clsLxrComment">// インスタンス -&gt; 非公開メンバの変換関数</span>
+    <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; m_arrInstances.length; ++i) {
+      <span class="clsLxrKeyword">if</span>(oThis == m_arrInstances[i])
+        <span class="clsLxrKeyword">return</span> m_arrPrivates[i];
+    }
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">null</span>;
+  }
+  <span class="clsLxrKeyword">function</span> findProtected(oThis) { <span class="clsLxrComment">// インスタンス -&gt; 限定公開メンバの変換関数</span>
+    <span class="clsLxrKeyword">for</span>(<span class="clsLxrKeyword">var</span> i = <span class="clsLxrNum">0</span>; i &lt; m_arrInstances.length; ++i) {
+      <span class="clsLxrKeyword">if</span>(oThis == m_arrInstances[i])
+        <span class="clsLxrKeyword">return</span> m_arrProtecteds[i];
+    }
+    <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">null</span>;
+  }
+
+  <span class="clsLxrComment">// コンストラクタを書き換える</span>
+  Person = <span class="clsLxrKeyword">function</span>(nAge, nSalary) {
+    m_arrInstances[m_cInstances] = <span class="clsLxrKeyword">this</span>;
+    m_arrPrivates[m_cInstances] = {
+      m_nAge : Number(nAge)
+    };
+    m_arrProtecteds[m_cInstances] = {
+      m_nSalary : Number(nSalary)
+    };
+    <span class="clsLxrKeyword">this</span>.findProtected = findProtected; <span class="clsLxrComment">// 継承先コンストラクタに参照を渡す</span>
+  };
+
+  <span class="clsLxrComment">// メソッドの定義</span>
+  Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> findPrivate(<span class="clsLxrKeyword">this</span>).m_nAge;
+  };
+
+} Person(); <span class="clsLxrComment">// Person コンストラクタの書き換えを実行</span>
+
+<span class="clsLxrComment">// 継承先コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Programmer() {
+  Person.call(<span class="clsLxrKeyword">this</span>); <span class="clsLxrComment">// findProtected への参照を受け取る</span>
+  <span class="clsLxrKeyword">var</span> findProtected = <span class="clsLxrKeyword">this</span>.findProtected;
+
+  <span class="clsLxrComment">// コンストラクタを書き換える</span>
+  Programmer = <span class="clsLxrKeyword">function</span>(nAge, nSalary) {
+    Person.call(<span class="clsLxrKeyword">this</span>, nAge, nSalary); <span class="clsLxrComment">// 普段通りのプロパティの継承</span>
+    <span class="clsLxrKeyword">this</span>.constructor = Programmer;
+    <span class="clsLxrKeyword">this</span>.findProtected = <span class="clsLxrNum">undefined</span>;
+  };
+
+  <span class="clsLxrComment">// プロトタイプ継承もここで行う</span>
+  Programmer.prototype = <span class="clsLxrKeyword">new</span> Person;
+
+  <span class="clsLxrComment">// メソッドの定義</span>
+  Programmer.prototype.getSalary = <span class="clsLxrKeyword">function</span>() {
+    <span class="clsLxrKeyword">return</span> findProtected(<span class="clsLxrKeyword">this</span>).m_nSalary;
+  };
+} Programmer(); <span class="clsLxrComment">// Programmer コンストラクタの書き換えを実行</span>
+          </code></pre>
+          <p><img class="clsFloatLeft" src="../../image/ejs00.png" alt="Fig. 3.1 非公開メンバと限定公開メンバのモデル" width="350" height="252" /><br />ここでも「クロージャ様様」なわけですが、少し複雑すぎるような気がしますね。少々目的がぼやけてきましたが、順に説明しましょう。この例では m_nSalary を限定公開メンバにすることを考えています。非公開メンバの場合と同様に参照テーブルに格納し、局所宣言された findProtected でのみアクセスできるようにしています。findProtected 関数はインスタンスを引数にとり、そのインスタンスの限定公開メンバの集合を返します</p>
+          <p>あとはこの関数を継承先から見えるようにすればいいのですが、グローバル変数に参照させると他からもアクセスされてしまいます。コンストラクタ外からこの関数を使おうとしても、実際には目的のインスタンスが必要なのですが、ここで使われている方法は関数自体を外に漏らさないようにしています。こういう場合は単純にソースコード上で静的にスコープの関係を考えても駄目です。重要なのは継承先コンストラクタのメソッドが定義されるコンテキストで、この局所変数への参照が存在していれば良いという点です。メソッドを定義するタイミングを一瞬のものとするテクニックは前にも出てきました。コンストラクタの書き換えです</p>
+          <p>書き換える前のコンストラクタに findProtected への参照を落とし、この一時的に有効なスコープでメソッドを定義してしまいます。復習ですがメソッド内の <code>findProtected(this)...</code> という記述はコンストラクタが書き換えられた後でも有効です</p>
+          <p>次に findProtected の参照を継承先の古いコンストラクタに渡す方法ですが、ここで Programmer と Person の間の関係をもう一度考える必要があります。私は Programmer の古いコンストラクタから Person の新しいコンストラクタを呼び出し、findProtected への参照を得ています。この方法自体はトリッキーなものですが、Programmer が Person のメンバを継承していることとはあまり関係ありません。他の全く関係無いコンストラクタが同じ方法を使って findProtected への参照を獲得できてしまうわけです (この関数の起動には引数に Person コンストラクタを通過したインスタンスが必要ですが)。これに対処する方法は色々ありますが、ここでは何もしていません</p>
+          <p>今回はマイナーなテクニックばかりになってしまいました。クロージャの使い方はよく理解しておいて下さい。次節でもクロージャを使ったテクニックを紹介します</p>
+        </div>
+
+    </div>
+  </body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+	<head>
+<BASE HREF="http://www.interq.or.jp.wstub.archive.org/student/exeal/dss/ejs/1/1.html">
+
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta http-equiv="Content-Style-Type" content="text/css" />
+		<meta http-equiv="Content-Script-Type" content="text/javascript" />
+		<link rev="made" href="mailto:exeal&#64;student.interq.or.jp" />
+		<link rel="contents" href="http://web.archive.org/web/20060701082155/http://www.interq.or.jp/student/exeal/dss/ejs/" />
+		<link rel="start" href="./">
+		<link rel="next" href="./2.html" />
+		<link rel="prev" href="./" />
+		<link rel="styleSheet" type="text/css" href="../../header/leaf.css" title="Default" />
+		<title>[1.1 引数] Effecttive JavaScript - Dynamic Scripting</title>
+		<script type="text/javascript" src="../../header/main.js"></script>
+	</head>
+	<body>
+		<p id="shortcutToMain"><a href="#mainContent" accesskey="1">本文へジャンプ</a></p>
+		<script type="text/javascript" src="../../header/primary_navigation_bar.js"></script>
+		<div id="root">
+			<script type="text/javascript" src="../../header/secondary_navigation_bar.js"></script>
+			<div id="dir">
+				<a href="./">トップ</a> &gt; <a href="../">Effective JavaScript</a> &gt; <a href="./">1 関数</a> &gt; 1.1 引数
+			</div>
+
+			<div id="mainContent">
+				<h1>1.1 引数</h1>
+				<p>最初の話題が関数であることについて変に感じられるかもしれません。基本的なことを論じるにしても、高度で変態的なテクニックを扱うにもしても、最初のトピックが関数だと拍子抜けかもしれません。しかし関数 (と呼ぶべきもの) は JavaScript の中核となっている要素なのです</p>
+				<p>JavaScript にはスコープが2つしか (実際は3つですが) ありません。関数の外側と内側です。これらのスコープは入れ子にでき、外側のスコープからは内側がどうなっているのか分かりません。しかし、JavaScript のスコープはたったこれだけなのです。JavaScript でクラスもどきを定義する方法に代表される隠しテクニックはこの単純な仕組みを利用したものが多いのです。そのため、何が可能で何が不可能なのかを見極めるためには、JavaScript の奇妙な関数の仕組みについて理解しておかなければならないのです。関数を使ったテクニックは後々紹介するとして、本節では関数の基本事項について述べます。まずは引数です</p>
+
+				<div class="clsSection2">
+					<h2>値渡しと参照渡し</h2>
+					<p>関数の呼び出し側がどのように引数を渡すか考えて下さい。引数が関数に渡されるとき、あなたが引数にセットした値は <em>概念的には</em> スコープを飛び越えることになります。しかし実引数がプリミティブ値の場合、実際にはそのようなことは起こりません。関数側が受け取るのは渡されたもののコピーです。これが <em>値渡し</em> です</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> hoge(v) {
+  v = <span class="clsLxrNum">0</span>;
+}
+
+<span class="clsLxrKeyword">var</span> n = <span class="clsLxrNum">100</span>;
+hoge(n);
+n; <span class="clsLxrComment">// 100 のまま</span>
+					</code></pre>
+					<p>この例で v は呼び出し側の n のコピーになります。つまり値が同じになるだけで、因果関係は全くありません。関数側で値が変更されても呼び出し側の変数には何の影響もありません</p>
+					<p>オブジェクトを渡すときには <em>参照渡し</em> が行われます。関数側が受け取るオブジェクトは呼び出し側のオブジェクトを参照します。この場合は関数側でオブジェクトを変更すると呼び出し側のオブジェクトも影響を受けます。このとき「いや、やっぱり呼び出し側のオブジェクトは変更されないじゃないか」と言って次のようなコードを書く人がいるかもしれません</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> hoge(o) {
+  o = <span class="clsLxrKeyword">new</span> Object();
+}
+
+<span class="clsLxrKeyword">var</span> o = <span class="clsLxrKeyword">new</span> Object();
+o.p = <span class="clsLxrNum">100</span>;
+hoge(o);
+o.p; <span class="clsLxrComment">// o.p は 100 のままだ...</span>
+					</code></pre>
+					<p>これは、関数 hoge はオブジェクトを変更して <em>いない</em> のです。hoge の1行目で何が行われるか考えましょう。まず <code>new</code> で全く新しいオブジェクトを作成します。この時点では o には呼び出し側のオブジェクトを参照しています。しかし <code>=</code> 演算子が使われていることにより関数内の o の参照先が変わってしまうのです。元のオブジェクトは呼び出し元の o から依然として参照されているのでガベージコレクトが起こることはありませんが、これ以降の o に対する変更は呼び出し元には影響しなくなるのです。結果として外の o.p は値が変化しなかったのです。次のように書き直すと参照渡しが行われていることを確認できます。関数側はオブジェクトを <em>変更している</em> のです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> hoge(o) {
+  o.p = <span class="clsLxrNum">0</span>;
+}
+
+<span class="clsLxrKeyword">var</span> o = <span class="clsLxrKeyword">new</span> Object();
+o.p = <span class="clsLxrNum">100</span>;
+hoge(o);
+o.p; <span class="clsLxrComment">// o.p は 0 に変更されている!</span>
+					</code></pre>
+					<p>参照渡しが存在する理由の1つは効率です。プリミティブでない値 (複雑な値; オブジェクト) は複数のプロパティを持っており、それを全てコピーしていたら非常に効率が悪くなります。そのためオブジェクトの存在する位置だけを関数に教え、関数はその位置情報を使って必要に応じてオブジェクトにアクセスします。2つ目の理由は呼び出し先での変更を呼び出し元に影響させることです。JavaScript のネイティブオブジェクトが持つメソッドには引数を変更するものはほとんどありませんが、これは非常に有用な手段です</p>
+					<p>JavaScript では実引数が単純であれば値渡しが、複雑であれば参照渡しが使用されます。VBScript では関数定義がこれを指定することができますが、JavaScript では実引数の値をスクリプトエンジンが調べて勝手に決定します。JavaScript の仮引数には型を指定することができないため、関数定義側はその引数がどちらの方法で渡されているか静的には分かりません。これを解決するのが次項の実引数の扱いに関するテクニックです</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>仮引数と実引数</h2>
+					<p>JavaScript では、仮引数リストの長さと異なる数の実引数を関数に渡してもスクリプトエンジンは文句を言いません。関数が呼び出されると実引数はその位置に応じて当該仮引数に割り当てられます (引数の渡し方はさっき説明しました)。実引数が足りないと割り当てられなかった各仮引数には <code>undefined</code> が設定され、逆に実引数係引数に比べて多いと、余りは無視されてしまいます</p>
+					<p>無視されるといっても値が完全に棄てられる訳ではありません。このような状況でも実引数を参照できるように ECMAScript は <code><a href="../../ref/jscript/object/arguments.html">arguments</a></code> を関数の局所変数として定義するようにしています。実引数はこの配列のようなオブジェクトのプロパティとして保持されます。仮引数 (parameters) が静的なものであるのに対し、実引数 (arguments) は関数の呼び出しが行われるまでどのようになるか分かりません。この特性を利用すると非常に興味深い関数を記述できるようになります</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>引数の省略</h2>
+					<p>ECMAScript では仮引数に対応する実引数が与えられなかった場合は、その仮引数が <code>undefined</code> にセットされることになっています。このことから、実引数を調べてそれが省略されているかどうか確認することができ、他の幾つかの言語で採用されている <em>引数の省略</em> がエミュレートできるのです。引数の省略とは指定した引数を関数呼び出し時に省略することを認め、その仮引数にあらかじめ決めておいた値をセットするするというものです</p>
+					<p>例えば文字列をディスプレイに出力する関数を考えましょう。あなたはロケールのことも考えて第2引数に文字列を左から右に書くのか、右から左に書くのかを指定できるブール値を設けることにしました</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr) { <span class="clsLxrComment">// bLtr が true であれば左から右</span>
+  <span class="clsLxrComment">// ...</span>
+}
+		</code></pre>
+					<p>実際にこの関数を使っていると、あることに気が付きます。bLtr に <code>true</code> をセットすることの方が圧倒的に多いのです。呼び出しの度に第2引数を書くのは面倒です。しかし、右から左に読むロケールが存在することを考えると仮引数を削ってしまうのも気が進まないことです。このような場合に第2引数を省略したらそれを <code>true</code> とみなす、ようなことが実現できたら便利だと思いませんか? これをやってみたのが以下に示すコードです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr) { <span class="clsLxrComment">// bLtr が true であれば左から右</span>
+  <span class="clsLxrKeyword">if</span>(bLtr == <span class="clsLxrNum">undefined</span>) <span class="clsLxrComment">// bLtr が省略されていたら</span>
+    bLtr = <span class="clsLxrNum">true</span>;        <span class="clsLxrComment">// true として処理を進める</span>
+  <span class="clsLxrComment">// ...</span>
+}
+
+outputStringToDisplay(<span class="clsLxrQuote">"Effective JavaScript"</span>, <span class="clsLxrNum">true</span>); <span class="clsLxrComment">// 左から右</span>
+outputStringToDisplay(<span class="clsLxrQuote">"Effective JavaScript"</span>);       <span class="clsLxrComment">// これも同じ</span>
+					</code></pre>
+					<p>省略されたかどうかを調べるときに <code>if(!bLtr)</code> のような書き方はできません．これだと <code>false</code> や 0 を指定したときも省略されたと勘違いしてしまいます．逆に <code>undefined</code> が引数として正当である場合にも注意して下さい</p>
+					<p>この方法は中々役立つものですが、クライアントは引数が省略を許すかどうか、そのデフォルト値が何なのかをどうやって知るのでしょうか．これにはコメントを使用します</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr <span class="clsLxrComment">/* = true */</span>)
+					</code></pre>
+					<p>デフォルト値には普通定数を使用します</p>
+					<p>省略可能な引数は <em>後方から連続しているものだけ</em> です．例えば次の内1番目のものは問題ありませんが、2番目のものは実現できません (エラーになるわけではありませんがあなたの思った通りには動きません)</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo(a, b, c <span class="clsLxrComment">/* = 1 */</span>, d <span class="clsLxrComment">/* = 2 */</span>) {}
+<span class="clsLxrKeyword">function</span> bar(a, b <span class="clsLxrComment">/* = 1 */</span>, c, d <span class="clsLxrComment">/* = 2 */</span>) {}
+
+foo(<span class="clsLxrNum">100</span>, <span class="clsLxrNum">200</span>); <span class="clsLxrComment">ok。省略可能な c と d を省略している</span>
+bar(<span class="clsLxrNum">100</span>, <span class="clsLxrNum">200</span>); <span class="clsLxrComment">駄目。省略不可能な c を省略している!</span>
+					</code></pre>
+					<p>省略可能な引数のテクニックは ECMAScript のネイティブメソッドにも使用されています</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>引数チェック</h2>
+					<p>前項でクライアントが渡してきた実引数が <code>undefined</code> であるかどうか調べました。このようなテクニックを使っていると実引数の正当性が重要になってきます。JavaScript の緩いセマンティクスにより、クライアントは仮引数リストとは異なる実引数リストを使って関数を呼び出すことができます。更に引数の型について関数は何も指定できません。前項の outputStringToDisplay 関数は第1引数を文字列、第2引数をブール値として処理を行おうとしますが、実際にはこれと異なる型の引数が渡される可能性があるのです。<code>string</code> と <code>boolean</code> オブジェクトはオブジェクトではないため、この関数はそれ程深刻な状況を生み出さないでしょう。第1引数にオブジェクトを渡すと、第1引数を文字列として扱うコンテキストでは <code>toString</code> メソッドが呼び出され、大事に至ることはありません。実際にディスプレイに出力された文字列を見てクライアントは「変な文字列がプリントされてしまった。あの関数の第1引数を間違えたかな?」と思うぐらいで特に深刻なエラーが発生するわけではありません</p>
+					<p>しかし引数がオブジェクトを要求していたら大変です。関数はそのオブジェクトのメソッドを呼び出そうとしたときに、オブジェクトが実は違うオブジェクトだったら、或いはプリミティブ値だったら一発でエラーになります。ここで問題なのはエラーになることではなく、間違った引数が与えられたということなのです。引数が正しいか調べるには前項と同じように関数の先頭で処理を行う必要があります</p>
+					<p>現実問題として、関数内でエラーが発生したときにこの種の引数チェックを使用しておくと、エラーの責任をクライアントに付き返したり、関数のセマンティクスをクライアントに通知できるようになります．関数の引数チェックに失敗したときにクライアントに対して「そりゃ、君の渡してきた実引数に変なものが混じっているからだよ。」と言うことができるのです。これは契約の理論ですが、契約についてはまた後で述べることにしましょう</p>
+					<p>引数の正当性を構成するのは以下の3つです</p>
+					<ul>
+						<li>数が合っているか</li>
+						<li>各引数の型が正しいか</li>
+						<li>各引数の値が有効なものか</li>
+					</ul>
+					<p>この3つの正当性を評価するのは大して難しくありません。まず引数リストの長さですが、これは1行で片が付きます</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo(a, b) {
+  <span class="clsLxrKeyword">if</span>(arguments.callee.length != arguments.length)
+    <span class="clsLxrComment">// そりゃ、君の渡してきた...</span>
+}
+
+<span class="clsLxrKeyword">function</span> bar(a, b, c <span class="clsLxrComment">/* = 0 */</span>) {
+  <span class="clsLxrKeyword">if</span>(arguments.callee.length &gt; arguments.length
+  　　|| arguments.callee.length - <span class="clsLxrNum">1</span> &lt; arguments.length)
+    <span class="clsLxrComment">// そりゃ、君の渡してきた...</span>
+}
+					</code></pre>
+					<p>次に引数の型のチェックですがこれも簡単です。<code>typeof</code> 演算子と <code>instanceof</code> 演算子を使うだけです。ただし、目的の型とそのセマンティクスによりチェックの仕方が少し異なります</p>
+					<p>まずプリミティブ型を要求する引数の型チェックをやってみましょう．この場合は <code>typeof</code> 演算子を使うだけです。outputStringToDisplay 関数では次のようになるでしょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr <span class="clsLxrComment">/* = true */</span>) {
+  <span class="clsLxrKeyword">if</span>(<strong>typeof</strong>(str) != <span class="clsLxrQuote">"string"</span>)
+    <span class="clsLxrComment">// 第1引数は文字列でないと駄目 -> エラー!</span>
+  <span class="clsLxrKeyword">if</span>(<strong>typeof</strong>(bLtr) != <span class="clsLxrQuote">"boolean"</span>)
+    <span class="clsLxrComment">// 第2引数はブール値でないと駄目 -> エラー!</span>
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+					</code></pre>
+					<p>しかしこのままでチェックが厳しすぎると思うかもしれません。「<code>String</code> とか <code>Boolean</code> オブジェクトを許容してもいいんじゃないか。JavaScript のオブジェクトは全部 <code>toString</code> メソッドを持っているし、これも文字列として扱えるだろう。」その通りです。JavaScript のオブジェクトは設計上の理由からプリミティブ値への変換も持つものが多いのです。しかし大抵の変換は自動的に行われるので、予期しない変換が起こることがあります．対応するプリミティブ型が存在するオブジェクト (<code>Boolean</code> 、<code>Number</code> 、<code>String</code>) はコンストラクタを関数として呼び出すことによりプリミティブ値を取り出すことができます</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputStringToDisplay(str, bLtr <span class="clsLxrComment">/* = true */</span>) {
+  str = String(str);    <span class="clsLxrComment">// str が何であろうとプリミティブな string 型に変換</span>
+  bLtr = Boolean(bLtr); <span class="clsLxrComment">// bLtr が何であろうとプリミティブな boolean 型に変換</span>
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+					</code></pre>
+					<p>これはシンプルな方法で、何をやろうとしているかすぐに分かります。いずれも ECMAScript で定められた型変換規則に従って変換が行われるのです。ただし何でも変換してしまうのでエラーを出す場所がありません。1番目の方法と2番目の方法のどちらを使うかは、その関数の意味で変わってきます。より厳密ながたチェックが必要な場合は前者を、そうでない場合は後者を選んで下さい</p>
+					<p>引数がオブジェクトを要求してくる場合は <code>instanceof</code> 演算子を使用します。事前に <code>typeof</code> でオブジェクトかどうか調べる必要はありません。次の例は <code>Date</code> オブジェクトを使って何かする関数です</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> useDate(oDate) {
+  <span class="clsLxrKeyword">if</span>(!(oDate <strong>instanceof</strong> Date))
+    <span class="clsLxrComment">// 第1引数は Date オブジェクトでないと駄目 -> エラー!</span>
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+					</code></pre>
+					<p>「ん? <code>Date</code> の派生オブジェクトでもこの関数は通してくれるのかな?」通ります。<code>Date</code> の派生オブジェクトは <code>Date</code> インスタンスでもあります。<code>instanceof</code> 演算子はオブジェクトのプロトタイプチェインを辿り、<code>Date</code> を見つけ出すのです</p>
+					<p>逆に <code>Date</code> オブジェクトしか認めない場合 (無意味な気がしますが) は <code>constructor</code> プロパティでそのオブジェクトのコンストラクタを調べます</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> useDate(oDate) {
+  <span class="clsLxrKeyword">if</span>(!oDate.constructor || oDate.constructor != Date)
+    <span class="clsLxrComment">// 第1引数は Date オブジェクトでないと駄目 -> エラー!</span>
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+					</code></pre>
+					<p>引数がオブジェクトである場合の問題については他の章でもう一度議論します</p>
+					<p>引数の型をコメントとして書き込むには以下の形式を使用すると良いでしょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> useDate(<span class="clsLxrComment">/* Date */</span> oDate)
+					</code></pre>
+					<p>最後は引数の値の正当性です。これは厄介というか面倒です。引数の値として何が正しいかは関数によって異なり、決まった方法がないのです。ここでは例を挙げるだけにしておきましょう</p>
+					<p>文字列から部分文字列を検索する関数を考えましょう。JavaScript のネイティブオブジェクトには、既に文字列検索のための関数がありますが、まあ、あなたはこの関数を作ったのです。引数リストは次のようになるでしょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> searchString(<span class="clsLxrComment">/* string */</span> strTarget,    <span class="clsLxrComment">// 検索対象</span>
+                      <span class="clsLxrComment">/* string */</span> strSubstring, <span class="clsLxrComment">// 検索する文字列</span>
+                      <span class="clsLxrComment">/* number */</span> iBegin        <span class="clsLxrComment">// 検索開始位置</span>
+) {
+  <span class="clsLxrComment">// 本処理...</span>
+}
+
+<span class="clsLxrComment">// 使う</span>
+searchString(<span class="clsLxrQuote">"Effective JavaScript"</span>, <span class="clsLxrQuote">"Script"</span>, <span class="clsLxrNum">7</span>);
+					</code></pre>
+					<p>仮引数リストを眺めていると、引数として不当な値がすぐに思いつきます</p>
+					<ul>
+						<li>strTarget 空文字列だったら検索する意味は無い</li>
+						<li>strSubstring が空文字列だったら検索する意味は無い</li>
+						<li>strTarget の文字列長が strSubstring の文字列長より短かったら検索する意味は無い</li>
+						<li>strTarget の文字列長が iBegin 以下だったら検索する意味は無い</li>
+					</ul>
+					<p>同時に次のようなことも思いつきます</p>
+					<ul>
+						<li>iBegin が負数だったらどう扱えばよいか</li>
+						<li>iBegin が小数だったらどう扱えばよいか</li>
+						<li>「検索する意味が無い」とはエラーを意味するか</li>
+					</ul>
+					<p>後で出てきた3つの疑問については決まった正解というものがありません。これらを決定するのは関数の作者なのです。<code>String</code> オブジェクトの文字列検索メソッドは変な引数を渡してもエラーになりませんが、この関数はもっと厳密なものにしてみましょう。上で挙げた事例を全てエラーとして処理するものとします</p>
+					<p>しかしその前に、「関数がエラーを出す」とはどういうことでしょうか。いままで幾つかの項で「エラーを出す」と言ってきましたが、コード中ではコメントを書いただけでした。実はこのエラー定義も関数作者の仕事なのです</p>
+					<p>一般的には例外を使用します。ただ例外は最近採り入れられたもので、対応していないスクリプトエンジンは例外処理を見つけると、逆にエラーを発生させてしまうのです。この <strong>Effective JavaScript</strong> は ECMAScript 3rd Edition を前提としているので、堂々と例外を使ったコードが書けますが、クロスブラウザを考慮したコードには使用できないことに注意して下さい (例外については該当章を参照)</p>
+					<p>では例外を使って searchString を書いてみましょう。ここでは <code>Error</code> オブジェクトを使いますが、エラーに応じた <code>NativeError</code> オブジェクトでも構いません</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> searchString(<span class="clsLxrComment">/* string */</span> strTarget,    <span class="clsLxrComment">// 検索対象</span>
+                      <span class="clsLxrComment">/* string */</span> strSubstring, <span class="clsLxrComment">// 検索する文字列</span>
+                      <span class="clsLxrComment">/* number */</span> iBegin        <span class="clsLxrComment">// 検索開始位置</span>
+) {
+  <span class="clsLxrComment">// 実引数の数のチェック</span>
+  <span class="clsLxrKeyword">if</span>(arguments.callee.length != arguments.length)
+    <span class="clsLxrKeyword">throw</span> Error(<span class="clsLxrQuote">"引数の数が合っていません"</span>);
+
+  <span class="clsLxrComment">// 型チェックはプリミティブ値につき手抜き</span>
+  strTarget = String(strTarget);
+  strSubstring = String(strSubstring);
+  iBegin = Number(iBegin); <span class="clsLxrComment">// NaN になる可能性もあるが...</span>
+
+  <span class="clsLxrComment">// 空文字列は駄目</span>
+  <span class="clsLxrKeyword">if</span>(strTarget.length == <span class="clsLxrNum">0</span> || strSubstring.length == <span class="clsLxrNum">0</span>)
+    <span class="clsLxrKeyword">throw</span> Error(<span class="clsLxrQuote">"空文字列は検索に使用できません"</span>);
+
+  <span class="clsLxrComment">// 小数や負数は使えない</span>
+  <span class="clsLxrKeyword">if</span>(iBegin &lt; <span class="clsLxrNum">0</span> || iBegin % 1 != <span class="clsLxrNum">0</span>)
+    <span class="clsLxrKeyword">throw</span> Error(<span class="clsLxrQuote">"検索開始位置に負数や小数は使用できません"</span>);
+
+  <span class="clsLxrComment">// strTarget が短い</span>
+  <span class="clsLxrKeyword">if</span>(strTarget.length &lt; strSubstring || strTarget.length &lt;= iBegin)
+    <span class="clsLxrKeyword">throw</span> Error(<span class="clsLxrQuote">"検索文字列長か開始位置が検索対象文字列長に比べて大きすぎます"</span>);
+
+  <span class="clsLxrComment">// 本処理...</span>
+}
+					</code></pre>
+					<p>冗長な気もしますが、こういう方法があるということです</p>
+					<p><code>NativeError</code> オブジェクトの話が出ましたが、ECMAScript には関数に不適切な引数を渡したときに使用する専用の例外オブジェクトが用意されていません。つまり ECMAScript では引数チェックはあまり問題ではないというのが普通の考え方なのです。ECMAScript の仕様を鵜呑みにするならこのままで構いませんが、折角引数チェックの議論を行ったので例外オブジェクトを作成することにしましょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> InvalidArgumentError(message) {
+  <span class="clsLxrKeyword">var</span> e = <span class="clsLxrKeyword">new</span> Error(message);
+  e.name = <span class="clsLxrQuote">"InvalidArgumentError"</span>;
+  <span class="clsLxrKeyword">return</span> e;
+}
+					</code></pre>
+					<p>「例外オブジェクトとか言ってこりゃただの関数だ」と思われるかもしれません。関数はオブジェクトですがそういう意味ではないですね。この奇妙なアプローチについては例外の章を見て下さい。何はともあれ、実際に例外を投げるには以下のようにします</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">if</span>(<span class="clsLxrComment">/* 引数チェック */</span>)
+  <span class="clsLxrKeyword">throw</span> InvalidArgumentError(<span class="clsLxrComment">/* エラーの説明 */</span>);
+					</code></pre>
+				</div>
+
+				<div class="clsSection2">
+					<h2>テクニック &#8212; 残余引数</h2>
+					<p><em>残余引数 (rest parameter)</em> とは対応する仮引数リストが無く、残りものになった実引数を扱う機能で、幾つかの言語で使用されています。これにより可変長引数が実現できますが、JavaScript では引数リストは元々可変長であり、簡単に模倣できます。役に立つかはともかく方法を紹介しましょう</p>
+					<p>実引数が <code>arguments</code> に格納されことは前に述べたとおりです。残余引数 (と勝手に思っているもの) にアクセスするにはこの <code>arguments</code> オブジェクトに添え字を使ってアクセスするだけです。これでは簡単すぎるので残余引数だけを格納したリスト (実際はこのリスト全体を残余引数という) を作成するとしましょう。これも簡単です</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo(a, b <span class="clsLxrComment">/* , ... */</span>) {
+  <span class="clsLxrKeyword">var</span> restParameter = Array.prototype.slice.call(
+    arguments, arguments.length - arguments.callee.length - 1, arguments.length);
+
+  <span class="clsLxrComment">// ...</span>
+}
+					</code></pre>
+					<p><code>Array::slice</code> メソッドは配列から部分配列を取り出すメソッドですが、<code>arguments</code> は <code>Array</code> オブジェクトでないことに注意して下さい。<code>Object::call</code> メソッドを使って汎用メソッド (該当項参照) である <code>Array::slice</code> を <code>arguments</code> を介して呼び出しています (ただしこれは実装依存です)。ただし <code>Object::call</code> は ECMAScript 3rd Edition で採用されたものなので、確実に restParameter を作成したい場合は <code>for</code> 文を使って下さい</p>
+					<p>可変長引数も ECMAScript ネイティブオブジェクトのメソッドに使用されています</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>テクニック - 関数の多重定義</h2>
+					<p>同じ名前で、意味が少しだけ異なる関数を複数定義したいことがあります。例えば <code>String::replace</code> メソッドは第1引数が文字列か正規表現パターンかで挙動が異なります。しかし実際にはメソッドが複数用意されているわけではありません。JavaScript では同じ名前で関数を定義すると最後に定義したものだけが有効になります。関数もオブジェクトに過ぎないためこれは当然のことです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> foo() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">1</span>;
+}
+<span class="clsLxrKeyword">function</span> foo() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrNum">2</span>;
+}
+foo(); <span class="clsLxrComment">// 2</span>
+					</code></pre>
+					<p>ここでも引数を調べることにより同名の関数を複数定義したように見せることができます (勿論呼び出しに関しての話です)。調べることは実引数の型と数です</p>
+					<p>例えばドキュメントが書かれた日付を出力する関数を考えましょう。この関数には月と日が必要ですからこれらの値を引数として要求することにしましょう。まず思いつくのは以下のような引数リストです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* number */</span> nMonth, <span class="clsLxrComment">/* number */</span> nDay) {
+  <span class="clsLxrComment">// 月と日から文字列を作成...</span>
+}
+					</code></pre>
+					<p>しかしすぐに別の形式を思いつきます。ECMAScript には日付を表すオブジェクトがあるのです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* Date */</span> oDate) {
+  <span class="clsLxrComment">// Date オブジェクトから文字列を作成...</span>
+}
+					</code></pre>
+					<p>最初から文字列として与えたい場合もあるでしょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* string */</span> strTimeStamp) {
+  <span class="clsLxrComment">// 引数をそのまま使う...</span>
+}
+					</code></pre>
+					<p>3種類の形式を考えることができました。次はこれら3つの関数を1つにまとめなければいけません。そのためには関数の先頭で引数チェックを行います</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* ... */</span>) {
+  <span class="clsLxrKeyword">if</span>(arguments.length == <span class="clsLxrNum">2</span>) {
+    <span class="clsLxrKeyword">var</span> nMonth = Number(arguments[<span class="clsLxrNum">0</span>]);
+    <span class="clsLxrKeyword">var</span> nDay = Number(arguments[<span class="clsLxrNum">1</span>]);
+    <span class="clsLxrComment">// 月と日から文字列を作成...</span>
+
+  } <span class="clsLxrKeyword">else if</span>(arguments.length == <span class="clsLxrNum">1</span> &amp;&amp; <span class="clsLxrKeyword">typeof</span>(arguments[<span class="clsLxrNum">0</span>]) == <span class="clsLxrQuote">"string"</span>) {
+    <span class="clsLxrKeyword">var</span> strTimeStamp = String(arguments[<span class="clsLxrNum">0</span>]);
+    <span class="clsLxrComment">// 文字列をそのまま使う...</span>
+
+  } <span class="clsLxrKeyword">else if</span>(arguments.length == <span class="clsLxrNum">1</span> &amp;&amp; arguments[<span class="clsLxrNum">0</span>] <span class="clsLxrKeyword">instanceof</span> Date) {
+    <span class="clsLxrKeyword">var</span> oDate = arguments[<span class="clsLxrNum">0</span>];
+    <span class="clsLxrComment">// Date オブジェクトから文字列を作成...</span>
+
+  } <span class="clsLxrKeyword">else</span>
+    <span class="clsLxrKeyword">throw</span> InvalidArgumentError(<span class="clsLxrQuote">"実引数の数が合っていません"</span>);
+
+  <span class="clsLxrComment">// ...</span>
+}
+					</code></pre>
+					<p>このテクニックは簡単ですがコードの見通しが多少悪くなります。コメントをうまく使って下さい。また1つの関数に押し込まずに引数に応じた別の関数を用意し、内部で呼び出すという方法もあります</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> outputTimeStamp(<span class="clsLxrComment">/* ... */</span>)
+  <span class="clsLxrKeyword">if</span>(arguments.length == <span class="clsLxrNum">2</span>)
+    <span class="clsLxrKeyword">return</span> __outputTimeStampByNumberNumber(arguments[<span class="clsLxrNum">0</span>], arguments[<span class="clsLxrNum">1</span>]);
+  <span class="clsLxrKeyword">else if</span>(arguments.length == <span class="clsLxrNum">1</span> &amp;&amp; <span class="clsLxrKeyword">typeof</span>(arguments[<span class="clsLxrNum">0</span>]) == <span class="clsLxrQuote">"string"</span>)
+    <span class="clsLxrKeyword">return</span> __outputTimeStampByString(arguments[<span class="clsLxrNum">0</span>]);
+  <span class="clsLxrKeyword">else if</span>(arguments.length == <span class="clsLxrNum">1</span> &amp;&amp; arguments[<span class="clsLxrNum">0</span>] <span class="clsLxrKeyword">instanceof</span> Date)
+    <span class="clsLxrKeyword">return</span> __outputTimeStampByDate(arguments[<span class="clsLxrNum">0</span>]);
+  <span class="clsLxrKeyword">else</span>
+    <span class="clsLxrKeyword">throw</span> InvalidArgumentError(<span class="clsLxrQuote">"実引数の数が合っていません"</span>);
+}
+					</code></pre>
+				</div>
+
+				<address>
+					<a class="clsFooterIcon" href="http://validator.w3.org/check/referer"><img src="../../image/valid-xhtml11.png" alt="Valid XHTML 1.1!" width="88" height="31" /></a>
+					&copy; 1999-2003 <a href="mailto:exeal&#64;student.interq.or.jp">exeal</a> &lt;<a href="http://cgi.members.interq.or.jp/student/exeal/cgi-bin/vairya.cgi?">Edit this page</a>&gt;
+				</address>
+			</div>
+		</div>
+	</body>
+
+<!-- SOME SCRIPT SRC'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<!-- SOME LINK HREF'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<SCRIPT language="Javascript">
+<!--
+
+// FILE ARCHIVED ON 20060701082155 AND RETRIEVED FROM THE
+// INTERNET ARCHIVE ON 20110216061603.
+// JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+// ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+// SECTION 108(a)(3)).
+
+   var sWayBackCGI = "http://web.archive.org/web/20060701082155/";
+
+   function xResolveUrl(url) {
+      var image = new Image();
+      image.src = url;
+      return image.src;
+   }
+   function xLateUrl(aCollection, sProp) {
+      var i = 0;
+      for(i = 0; i < aCollection.length; i++) {
+         var url = aCollection[i][sProp];         if (typeof(url) == "string") { 
+          if (url.indexOf("mailto:") == -1 &&
+             url.indexOf("javascript:") == -1
+             && url.length > 0) {
+            if(url.indexOf("http") != 0) {
+                url = xResolveUrl(url);
+            }
+            url = url.replace('.wstub.archive.org','');
+            aCollection[i][sProp] = sWayBackCGI + url;
+         }
+         }
+      }
+   }
+
+   xLateUrl(document.getElementsByTagName("IMG"),"src");
+   xLateUrl(document.getElementsByTagName("A"),"href");
+   xLateUrl(document.getElementsByTagName("AREA"),"href");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"codebase");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"data");
+   xLateUrl(document.getElementsByTagName("APPLET"),"codebase");
+   xLateUrl(document.getElementsByTagName("APPLET"),"archive");
+   xLateUrl(document.getElementsByTagName("EMBED"),"src");
+   xLateUrl(document.getElementsByTagName("BODY"),"background");
+   xLateUrl(document.getElementsByTagName("TD"),"background");
+   xLateUrl(document.getElementsByTagName("INPUT"),"src");
+   var forms = document.getElementsByTagName("FORM");
+   if (forms) {
+       var j = 0;
+       for (j = 0; j < forms.length; j++) {
+              f = forms[j];
+              if (typeof(f.action)  == "string") {
+                 if(typeof(f.method)  == "string") {
+                     if(typeof(f.method) != "post") {
+                        f.action = sWayBackCGI + f.action;
+                     }
+                  }
+              }
+        }
+    }
+
+
+//-->
+</SCRIPT>
+
+</html>

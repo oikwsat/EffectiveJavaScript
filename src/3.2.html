@@ -1,0 +1,384 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+	<head>
+<BASE HREF="http://www.interq.or.jp.wstub.archive.org/student/exeal/dss/ejs/3/2.html">
+
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta http-equiv="Content-Style-Type" content="text/css" />
+		<meta http-equiv="Content-Script-Type" content="text/javascript" />
+		<link rev="made" href="mailto:exeal&#64;student.interq.or.jp" />
+		<link rel="contents" href="http://web.archive.org/web/20060428053254/http://www.interq.or.jp/student/exeal/dss/ejs/" />
+		<link rel="start" href="./">
+		<link rel="next" href="./3.html" />
+		<link rel="prev" href="./1.html" />
+		<link rel="styleSheet" type="text/css" href="../../header/leaf.css" title="Default" />
+		<title>[3.2 コンストラクタとプロトタイプ] Effective JavaScript - Dynamic Scripting</title>
+		<script type="text/javascript" src="../../header/main.js"></script>
+	</head>
+	<body>
+		<p id="shortcutToMain"><a href="#mainContent" accesskey="1">本文へジャンプ</a></p>
+		<script type="text/javascript" src="../../header/primary_navigation_bar.js"></script>
+		<div id="root">
+			<script type="text/javascript" src="../../header/secondary_navigation_bar.js"></script>
+			<div id="dir">
+				<a href="./">トップ</a> &gt; <a href="../">Effective JavaScript</a> &gt; <a href="./">3 オブジェクト</a> &gt; 3.2 コンストラクタとプロトタイプ
+			</div>
+
+			<div id="mainContent">
+				<h1>3.2 コンストラクタとプロトタイプ</h1>
+				<p><a href="./1.html">前節</a>ではオブジェクトを作成して使う方法について述べました。あるオブジェクトについてこのような立場をとる人間、オブジェクトをクライアントといいます。クライアントは「顧客」とか「依頼人」という意味です。つまりオブジェクトから見れば「お客」なのです。それ故オブジェクトはクライアントを中心に振舞わなければなりませんし、クライアントとの契約が守れないときはそれなりの対処をしなければいけません (「<a href="../2/">2. 例外</a>」を参照)</p>
+				<p>この節で解説するのはオブジェクトを定義する方法です。JavaScript についてよく知らない多言語プログラマは「JavaScript はオブジェクトのクライアントとしてはまあまあだが、クラスを定義できないから駄目だ」と言うかもしれません。確かに JavaScript にはクラスを定義するための構文が存在しません。しかしそれは言語が貧弱だからではなく、JavaScript がクラスベースではなくプロトタイプベースの設計を選んだからです (JavaScript 2.0 ではクラスが使えますが)。プロトタイプ理論に従えば「オブジェクトを継承」させることも可能なのです。クライアントの前で仕事をするのはクラスではなくオブジェクトであることを忘れないで下さい</p>
+
+				<div class="clsSection2">
+					<h2>コンストラクタの定義</h2>
+					<p><code>new</code> 演算子を使ってコンストラクタ (とクライアントが考えているもの) を呼び出そうとするとコンストラクタの内部メソッド[[Construct]]が呼び出されます。このメソッドが呼び出される以下のように処理が行われます (<cite>ECMAScript 3rd Edition 13.2.2 [[Construct]]</cite> より作成)</p>
+					<ol>
+						<li>オブジェクトを作成し、その内部プロパティ[[Class]]に <code>&quot;Object&quot;</code> を設定する</li>
+						<li>コンストラクタの <code>prototype</code> プロパティがオブジェクトであれば、作成されたオブジェクトの内部プロパティ[[Prototype]]に設定する。オブジェクトでなければ <code>Object::prototype</code> の値が使用される</li>
+						<li>コンストラクタの内部メソッド[[Call]]を呼び出す。引数には[[Construct]]呼び出しに使用されたものが使用される。また <code>this</code> 引数には新しく作成したオブジェクトを使う</li>
+						<li>[[Call]]呼び出しがオブジェクトを返した場合はそのオブジェクトを返す。そうでなければ最初に作成したオブジェクトを返す</li>
+					</ol>
+					<p>これからコンストラクタの定義について述べるわけですが、そのコンストラクタのコードが実行されるのは上記の第3ステップです。つまり制御がコンストラクタ関数に入ったときには既にオブジェクトは作成されています。このオブジェクトは <code>this</code> 引数としてコンストラクタに渡されます。では実際にコンストラクタを記述してみましょう。別に難しいことはありません</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject() {
+  <span class="clsLxrKeyword">this</span>; <span class="clsLxrComment">// 作成されたオブジェクト</span>
+}
+					</code></pre>
+					<p>普通は値を返す必要はありません (上記第4ステップ参照)。呼び出し側は次のようになるでしょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> obj = <span class="clsLxrKeyword">new</span> MyObject;
+obj; <span class="clsLxrComment">// 作成されたオブジェクト</span>
+					</code></pre>
+					<p>引数の括弧がありませんがこれは正しいものです。このようにするとコンストラクタに引数は渡されません</p>
+					<p>これだけではあまり面白くありません。コンストラクタがしなければならないことは「オブジェクトを作成すること」(概念的な話)、「オブジェクトのメンバを初期化すること」、「オブジェクトが作成できないときに何か対処すること」の3つです。素直な設計では作成はコンストラクタが呼び出されたときに終了しているので、ここでは後の2つについてコードを書くことにしましょう。メンバの初期化は <code>this</code> 引数にプロパティをくっつけるだけです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject(n) {
+  <span class="clsLxrKeyword">this</span>.myProperty = n; <span class="clsLxrComment">// プロパティ</span>
+}
+
+<span class="clsLxrKeyword">var</span> obj = <span class="clsLxrKeyword">new</span> MyObject(<span class="clsLxrNum">7</span>);
+obj.myProperty; <span class="clsLxrComment">// 7</span>
+					</code></pre>
+					<p>コンストラクタは関数でもあるので「<a href="../1/">1. 関数</a>」で述べたテクニックが全て使えます。エラーハンドリングについては省略します</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>メソッドの定義</h2>
+					<p>プロパティと同じ方法でメソッドも定義できるのではないでしょうか。例えば次のようなコードが考えられます</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject() {
+  <span class="clsLxrKeyword">this</span>.myMethod = <span class="clsLxrKeyword">function</span>() {
+  };
+}
+
+<span class="clsLxrKeyword">var</span> obj = <span class="clsLxrKeyword">new</span> MyObject();
+obj.myMethod(); <span class="clsLxrComment">// 呼び出す</span>
+					</code></pre>
+					<p>このメソッド呼び出しは正しく動作しますが JavaScript のメソッド定義からは逸脱しています。例えば以下のコードを見てみましょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> str = <span class="clsLxrKeyword">new</span> String();
+str.concat;                   <span class="clsLxrComment">// concat オブジェクト</span>
+str.hasOwnProperty(<span class="clsLxrQuote">"concat"</span>); <span class="clsLxrComment">// false</span>
+					</code></pre>
+					<p>このことから分かるように <code>String</code> インスタンスの <code>concat</code> メンバはインスタンスの直接のプロパティ (メソッド) ではないのです。しかしそうは見えません。では本当は何処にプロパティがあるのかというと <code>String::prototype</code> オブジェクトのプロパティになっています</p>
+					<pre><code class="clsSample">
+String.<strong>prototype</strong>.hasOwnProperty(<span class="clsLxrQuote">"concat"</span>); <span class="clsLxrComment">// true</span>
+					</code></pre>
+					<p>つまり MyObject コンストラクタは次のようにする必要があったのです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject() {
+  MyObject.prototype.myMethod = <span class="clsLxrKeyword">function</span>() {
+  };
+  <span class="clsLxrComment">// 或いは次でも可</span>
+  <span class="clsLxrKeyword">this</span>.constructor.prototype.myMethod = <span class="clsLxrKeyword">function</span>() {
+  };
+}
+					</code></pre>
+					<p>ただ、1つのコンストラクタにプロトタイプは1つしか無いのでコンストラクタが呼び出される度にメソッドをセットするのは無駄です。次のようにコンストラクタから外してしまうのが一般的です</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> MyObject() {
+}
+
+MyObject.prototype.myMethod = <span class="clsLxrKeyword">function</span>() {
+};
+					</code></pre>
+				</div>
+
+				<div class="clsSection2">
+					<h2>プロトタイプ</h2>
+					<p><em>プロトタイプ (prototype)</em> はコンストラクタオブジェクト毎に1つずつしか存在しないプロパティです。プロトタイプを使うと同じコンストラクタから作成されたインスタンス (厳密には同じ <code>prototype</code> プロパティを持つインスタンス) に共通のメンバを与えることができます。つまりプロトタイプは静的オブジェクト指向言語のクラスのような役割をしているのです。しかしプロトタイプの仕事はこれだけではありません</p>
+					<p>コンストラクタとプロトタイプは密接に結びついており、コンストラクタから作成されたオブジェクトはそのコンストラクタに固有なプロトタイプ (例えば <code>MyObject.prototype</code>) を参照します。この参照は内部プロパティ[[Prototype]]で普通はコード上には現れないものです (JavaScript 1.3 は <code>__proto__</code> プロパティとしてこの参照を公開しています)。そして上記の myMethod のようにコンストラクタのプロトタイプにセットされたメンバはこの参照を介して探索されます。具体的には以下のようなことが起こります</p>
+					<ol>
+						<li>オブジェクトのメンバにアクセスしようとする。実装は与えられた名前のプロパティがオブジェクトにあるか調べる (上の例の場合は<strong>無い</strong>)</li>
+						<li>見つからなかった場合はプロトタイプオブジェクトから与えられた名前のメンバを探す (上記の場合は MyObject.prototype.myMethod が見つかる)</li>
+						<li>それでも見つからない場合はプロトタイプのプロトタイプから探す</li>
+						<li>以下、プロトタイプが無くなるまで続ける。プロトタイプが無い場合は内部プロパティ[[Prototype]]には <code>null</code> がセットされている</li>
+					</ol>
+					<p>このようなプロトタイプの繋がりを勿体付けて <em>プロトタイプチェイン (prototype chain)</em> と呼びます。プロトタイプチェインを使うと同じプロトタイプチェインを辿ることのできるオブジェクトの間に階層的な関係を持ち込むことができます</p>
+					<p>では簡単な例で少し復習してみましょう。以下は人間オブジェクトの例です</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;
+}
+
+<span class="clsLxrComment">// 年齢を返すメソッド</span>
+Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>.m_nAge;
+};
+
+<span class="clsLxrKeyword">var</span> Don = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">22</span>);   <span class="clsLxrComment">// 勿論これは冗談</span>
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">21</span>);
+
+Don.getAge == Exeal.getAge; <span class="clsLxrComment">// true</span>
+Don.getAge();               <span class="clsLxrComment">// 22</span>
+					</code></pre>
+					<p>最後の2行では Don インスタンスから getAge プロパティを探しますが、失敗します。次に Don のプロトタイプ Person::prototype (= Don.__proto__) から探し、プロパティを見つけます</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>クラスメンバ</h2>
+					<p><em>クラスメンバ</em> (静的メンバ) はインスタンス毎に与えられるメンバではなくクラス毎に存在するメンバです。JavaScript にはクラスが無いのでコンストラクタメンバとでも呼ぶことにしましょう。コンストラクタメンバは特定のインスタンスが無くても存在可能なメンバで <code>constructor</code> プロパティもこれに該当します</p>
+					<p>コンストラクタメンバの定義方法は非常に簡単です。コンストラクタにプロパティを設定するだけです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// コンストラクタ</span>
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;
+  <span class="clsLxrKeyword">if</span>(Person.m_nPopulation != <span class="clsLxrNum">undefined</span>)
+    ++Person.m_nPopulation;
+}
+
+Person.m_nPopulation = <span class="clsLxrNum">0</span>;
+
+<span class="clsLxrKeyword">var</span> Don = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">22</span>);
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">21</span>);
+
+Person.m_nPopulation; <span class="clsLxrComment">// 2</span>
+Don.m_nPopulation;    <span class="clsLxrComment">// 残念ながらこれは駄目</span>
+					</code></pre>
+				</div>
+
+				<div class="clsSection2">
+					<h2>継承</h2>
+					<p>何度か書きましたが JavaScript にはクラスがありません。代わりにあるのはプロトタイプです。静的なオブジェクト指向言語ではクラス定義を継承しますが、プロトタイプベース言語ではプロトタイプベースの継承を行います</p>
+					<p>クラス <var>D</var> がクラス <var>B</var> のメンバを <em>継承 (inheritance)</em> すると、クラス <var>D</var> でメンバを定義しなくてもクラス <var>D</var> のインスタンスはクラス <var>B</var> のインスタンスが持つメンバを持つようになります。継承はオブジェクト指向における再利用性を実現している概念で、クラスベース言語ではクラスを <em>派生</em> させることでメンバの継承を行います</p>
+					<p>ではプロトタイプベース言語でメンバを継承するにはどうすればいいのでしょうか。例えばクライアントが次のようなコードを書けるようにしたいのです</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;
+}
+
+Person.prototype.getAge = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>.m_nAge;
+};
+
+<span class="clsLxrKeyword">function</span> Programmer(nAge, strProject) {
+  <span class="clsLxrComment">/* Person メンバの継承を実現するコード */</span>
+}
+
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Programmer(<span class="clsLxrNum">21</span>, <span class="clsLxrQuote">"EJS"</span>);
+Exeal.getAge();
+					</code></pre>
+					<p>まずはプロパティの継承を考えましょう。以下のようにすれば巧くいくような気がします</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person(nAge) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;
+}
+
+<span class="clsLxrKeyword">function</span> Programmer(nAge, strProject) {
+  <span class="clsLxrKeyword">this</span>.m_nAge = nAge;             <span class="clsLxrComment">// 真似する</span>
+  <span class="clsLxrKeyword">this</span>.m_strProject = strProject; <span class="clsLxrComment">// 新しく追加するプロパティ</span>
+}
+					</code></pre>
+					<p>しかしこれでは2つのコンストラクタの間には何の関係もありません。また Person が変更されると Programmer も変更しなければなりません</p>
+					<p>(JavaScript の) コンストラクタの仕事にはプロパティの追加以外にインスタンスの初期化も含まれます。上のような簡単なコンストラクタはただ引数を代入しているだけですが、プロパティの数が増えたり複雑なものになると Programmer コンストラクタで同じコードを書くのは馬鹿らしくなります。それにこのままでは Person コンストラクタのクライアントである Programmer コンストラクタが Person の内部事情について先天的な知識を持つ必要があるので、オブジェクト指向の持つ再利用性を著しく欠いてしまいます。ちょっと嫌な方法ですがここでは Programmer コンストラクタから Person コンストラクタを呼び出してインスタンス初期化の一部委譲することにしましょう。新しく作成されたインスタンスに Person コンストラクタを適用するには以下の2つの方法があります</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">// 1つ目</span>
+<span class="clsLxrKeyword">function</span> Programmer(nAge, strProject) {
+  <span class="clsLxrKeyword">this</span>.__super = Person;         <span class="clsLxrComment">// 新インスタンスを介して</span>
+  <span class="clsLxrKeyword">this</span>.__super(nAge);            <span class="clsLxrComment">// 継承元コンストラクタを呼ぶ</span>
+  <span class="clsLxrKeyword">this</span>.constructor = Programmer; <span class="clsLxrComment">// コンストラクタが Person にセットされるので元に戻す</span>
+  <span class="clsLxrKeyword">delete</span> <span class="clsLxrKeyword">this</span>.__super;
+  <span class="clsLxrComment">/* Programmer コンストラクタの処理 */</span>
+}
+
+<span class="clsLxrComment">// 2つ目</span>
+<span class="clsLxrKeyword">function</span> Programmer(nAge, strProject) {
+  Person.call(<span class="clsLxrKeyword">this</span>, nAge);
+  <span class="clsLxrKeyword">this</span>.constructor = Programmer;
+  <span class="clsLxrComment">/* Programmer コンストラクタの処理 */</span>
+}
+					</code></pre>
+					<p>2つ目の方法は ECMAScript 3rd Edition でのみ使用できます</p>
+					<p>さて、少々安直ですがプロパティの継承はできました。次はメソッドの継承です。メソッドの実体は Person.prototype に集められているのでこれを Programmer.prototype にコピーすれば良いような気がしますが、次のようにしても巧くいきません</p>
+					<pre><code class="clsSample">
+<span class="clsLxrComment">/*
+ *  コンストラクタの定義...
+ */</span>
+
+Programmer.prototype = Person.prototype;
+
+Programmer.prototype.getProjectName = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">return</span> <span class="clsLxrKeyword">this</span>.m_strProject;
+};
+
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Person(<span class="clsLxrNum">21</span>);
+Exeal.getProjectName; <span class="clsLxrComment">// undefined でない!</span>
+					</code></pre>
+					<p>プロトタイプをコピーしようとしても実際には参照されるだけです。Programmer.prototype は Person.prototype の中身を参照しているので、ここにメソッドを追加すると Person にも影響が及んでしまいます</p>
+					<p>勿論参照でなく純粋に複製できたとしても正解ではありません。プロトタイプが継承に使われるのはメンバ探索がプロトタイプチェインを辿るからです。プロトタイプを単純にメソッドの置き場所と考えてはいけません。関連するコンストラクタとプロトタイプは階層的であり、Programmer プロトタイプでの探索に失敗した後、Person プロトタイプを探索するようにしなければいけません。そのためには Programmer プロトタイプのプロトタイプが Person プロトタイプである必要があります。JavaScript なら次のようにすれば良いでしょう</p>
+					<pre><code class="clsSample">
+Programmer.prototype.__proto__ = Person.prototype;
+					</code></pre>
+					<p>「でも ECMAScript 仕様外の機能は使いたくない」という声が聞こえてきそうですが、これ以外にも方法はあります。しかしこれもちょっと嫌な方法ですが次のようにします</p>
+					<pre><code class="clsSample">
+Programmer.prototype = <span class="clsLxrKeyword">new</span> Person();
+					</code></pre>
+					<p>直感的には分かりにくいかもしれないので順に見ていきましょう</p>
+					<ol>
+						<li>Person インスタンスを作成し、Programmer コンストラクタのプロトタイプにセットする</li>
+						<li>Person インスタンスのプロトタイプは Person のプロトタイプである</li>
+						<li>Programmer.prototype のプロトタイプは Person のプロトタイプである</li>
+						<li>Programmer のプロトタイプのプロトタイプは Person のプロトタイプである</li>
+					</ol>
+					<p>嘘みたいな方法ですがちゃんと動きます</p>
+					<pre><code class="clsSample">
+Programmer.prototype = <span class="clsLxrKeyword">new</span> Person();
+
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Programmer(<span class="clsLxrNum">21</span>, <span class="clsLxrQuote">"EJS"</span>);
+Exeal.getAge();          <span class="clsLxrComment">// 21</span>
+Exeal.getProjectName();  <span class="clsLxrComment">// "EJS"</span>
+Exeal <span class="clsLxrKeyword">instanceof</span> Person; <span class="clsLxrComment">// true</span>
+					</code></pre>
+					<p>「ちょっと嫌な」と書いたのはコンストラクタ呼び出しが新インスタンスの作成以上のことをするからです。例えばコンストラクタメンバで使った m_nPopulation はメンバの継承で1になってしまいます。オブジェクトの構成が簡単であれば色々と対処できますが、継承元のクライアントは継承元のコンストラクタに対して、実際に実用インスタンスを作成するために呼び出したのかメソッドを継承したいだけなのかを通知する手段がありません。この継承の方法に問題が無いのは継承元のコンストラクタがそのように設計されているときだけです。そしてそのようなスペックは継承元が提示しない限りクライアントからは分かりません</p>
+					<p>この方法ではコンストラクタメンバまでは継承されませんがこれは妥当なことと思えます。コンストラクタメンバはコンストラクタごとに存在するのです</p>
+					<p>このように JavaScript における継承は継承元コンストラクタの呼び出しによるプロパティのセットと、プロトタイプによるメソッドの継承の2段階で構成されます</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>多重継承</h2>
+					<p>いくつかのオブジェクト指向言語では多重継承が認められています。多重継承は1度に複数のクラスのメンバを継承します。例えばプログラマのクラスと弁護士のクラスからメンバを継承したクラスのインスタンスは、プログラマとしても弁護士としても活躍することができます</p>
+					<p>多重継承は便利なものですが使い方を間違えると (ほとんど正解が無い場合もある) 混乱を引き起こします。メンバ名の衝突やダイヤモンド継承などの問題から Java には多重継承がありません。そして JavaScript にも多重継承は <em>ありません</em>。これは多重継承にまつわる問題を懸念して仕様から外されたのではなく、プロトタイプチェインが1本の鎖状であることから必然的に不可能になっているものだと思います</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>オーバーライド</h2>
+					<p>メソッドを継承するときに一部のメソッドの動作を変更したいことがあります。例えば人間を表す Person コンストラクタが以下のように定義されているとしましょう</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person() {
+}
+
+<span class="clsLxrComment">// 眠る</span>
+Person.prototype.sleep = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">this</span>.goToBed();
+};
+					</code></pre>
+					<p>この Person からメンバを継承して Programmer を作ると Programmer インスタンスでも sleep メソッドが使えます。しかしプログラマの寝床はベッドではありません。Programmer インスタンスの場合、「ベッドに行く」という振る舞いを変更しなければいけません。このためには Progammer.prototype にメソッドを設定し直します</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">function</span> Person() {
+}
+
+Person.prototype = <span class="clsLxrKeyword">new</span> Person();
+
+<span class="clsLxrComment">// 眠る</span>
+Programmer.prototype.sleep = <span class="clsLxrKeyword">function</span>() {
+  <span class="clsLxrKeyword">this</span>.relaxOnYourChair();
+};
+					</code></pre>
+					<p>このようにすると Programmer インスタンスの sleep メソッドの呼び出しでは Programmer.prototype.sleep が呼び出されるようになります。このように継承先でメソッドの定義を変更することを <em>オーバーライド</em> といいます</p>
+					<p>オーバーライドされた元のメソッドを呼び出すには、つまり基底プロトタイプのメソッドを呼び出すには <code>Function::apply</code> か <code>Function::call</code> メソッドを使います</p>
+					<pre><code class="clsSample">
+<span class="clsLxrKeyword">var</span> Exeal = <span class="clsLxrKeyword">new</span> Programmer();
+
+<span class="clsLxrComment">// 今日はベッドで眠れそう</span>
+Person.prototype.sleep.call(Exeal);
+					</code></pre>
+					<p>ただしこの呼び出し自体は Programmer が Person を継承しているかどうかを何も考慮していません。Java には <code>super</code> キーワードがあり、基底クラスにアクセスできますが ECMAScript の仕様には基底コンストラクタをポイントするための仕組みがありません</p>
+					<p>プロパティはオーバーライドできません。継承先でプロパティを定義し直すと単純に上書きになります</p>
+				</div>
+
+				<div class="clsSection2">
+					<h2>残りの話題</h2>
+					<p>JScript 、JavaScript 、ECMAScript におけるオブジェクト指向のオフィシャルな (?) 話題は以上のようなものです。JavaScript のメンバの種類、コンストラクタとプロトタイプ、プロトタイプチェインによる継承が可能になりました。これらを習得したことで (習得して頂けましたね?) あなたは JavaScript のオブジェクトを自由に操り、仕事をさせることができます。次節からは更にオブジェクトの実装側のテクニックを取り上げていくことにします</p>
+				</div>
+
+				<address>
+					<a class="clsFooterIcon" href="http://validator.w3.org/check/referer"><img src="../../image/valid-xhtml11.png" alt="Valid XHTML 1.1!" width="88" height="31" /></a>
+					&copy; 1999-2003 <a href="mailto:exeal&#64;student.interq.or.jp">exeal</a> &lt;<a href="http://cgi.members.interq.or.jp/student/exeal/cgi-bin/vairya.cgi?">Edit this page</a>&gt;
+				</address>
+			</div>
+		</div>
+	</body>
+
+<!-- SOME SCRIPT SRC'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<!-- SOME LINK HREF'S ON THIS PAGE HAVE BEEN REWRITTEN BY THE WAYBACK MACHINE
+OF THE INTERNET ARCHIVE IN ORDER TO PRESERVE THE TEMPORAL INTEGRITY OF THE SESSION. -->
+
+
+<SCRIPT language="Javascript">
+<!--
+
+// FILE ARCHIVED ON 20060428053254 AND RETRIEVED FROM THE
+// INTERNET ARCHIVE ON 20110216061647.
+// JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+// ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+// SECTION 108(a)(3)).
+
+   var sWayBackCGI = "http://web.archive.org/web/20060428053254/";
+
+   function xResolveUrl(url) {
+      var image = new Image();
+      image.src = url;
+      return image.src;
+   }
+   function xLateUrl(aCollection, sProp) {
+      var i = 0;
+      for(i = 0; i < aCollection.length; i++) {
+         var url = aCollection[i][sProp];         if (typeof(url) == "string") { 
+          if (url.indexOf("mailto:") == -1 &&
+             url.indexOf("javascript:") == -1
+             && url.length > 0) {
+            if(url.indexOf("http") != 0) {
+                url = xResolveUrl(url);
+            }
+            url = url.replace('.wstub.archive.org','');
+            aCollection[i][sProp] = sWayBackCGI + url;
+         }
+         }
+      }
+   }
+
+   xLateUrl(document.getElementsByTagName("IMG"),"src");
+   xLateUrl(document.getElementsByTagName("A"),"href");
+   xLateUrl(document.getElementsByTagName("AREA"),"href");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"codebase");
+   xLateUrl(document.getElementsByTagName("OBJECT"),"data");
+   xLateUrl(document.getElementsByTagName("APPLET"),"codebase");
+   xLateUrl(document.getElementsByTagName("APPLET"),"archive");
+   xLateUrl(document.getElementsByTagName("EMBED"),"src");
+   xLateUrl(document.getElementsByTagName("BODY"),"background");
+   xLateUrl(document.getElementsByTagName("TD"),"background");
+   xLateUrl(document.getElementsByTagName("INPUT"),"src");
+   var forms = document.getElementsByTagName("FORM");
+   if (forms) {
+       var j = 0;
+       for (j = 0; j < forms.length; j++) {
+              f = forms[j];
+              if (typeof(f.action)  == "string") {
+                 if(typeof(f.method)  == "string") {
+                     if(typeof(f.method) != "post") {
+                        f.action = sWayBackCGI + f.action;
+                     }
+                  }
+              }
+        }
+    }
+
+
+//-->
+</SCRIPT>
+
+</html>

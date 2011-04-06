@@ -1,0 +1,497 @@
+/*
+ * leaf.css
+ * (c) 2003 exeal designed for Dynamic Scripting
+ */
+
+@charset "UTF-8";
+
+
+
+/* ---------- Navigation Bars ---------- */
+
+p#shortcutToMain {
+	/* Opera 7.03 はこのルールを読んでくれない... */
+	/* 文字コード (UTF-8) がまずいのかも知れぬ */
+}
+p#shortcutToMain {
+	position:absolute;
+	top:-3em;
+}
+div#dir {
+	border:1px solid #CC9;
+	border-top:none;
+	border-bottom-style:dashed;
+	margin:0em;
+	margin-left:142px;
+	padding:0.4em 1em;
+	text-align:right;
+	width:74%;
+}
+div#root {
+}
+div#mainContent {
+	color:inherit;
+	background:#FFF none;
+	margin:0em;
+	margin-left:20px;
+	padding:1em;
+	border:1px solid #CC9;
+	border-style:none solid;
+	width:90%;
+}
+
+
+
+/* ---------- Source Code Highlighting ---------- */
+span.clsLxrKeyword {	/* source code keyword */
+	color:#33F;
+	background:transparent none;
+}
+span.clsLxrComment {	/* source code comment */
+	color:#090;
+	background:transparent none;
+/*	font-style:italic;*/
+	font-family:serif;
+}
+span.clsLxrQuote {	/* source code quotation */
+	color:#009;
+	background:transparent none;
+}
+span.clsLxrNum {	/* source code numeric literal and some constant */
+	color:#900;
+	background:transparent none;
+}
+span.clsLxrCaution {	/* source code illegal region */
+	color:inherit;
+	background:#FFC none;
+}
+span.clsLxrXmlTag {	/* XML source tag */
+	color:#00F;
+	background:transparent none;
+}
+span.clsLxrXmlElement {	/* XML source element name */
+	color:#900;
+	background:transparent none;
+}
+span.clsLxrXmlAttribute {	/* XML source attribute name */
+	color:#900;
+	background:transparent none;
+}
+span.clsLxrXmlValue {	/* XML source attribute value */
+	color:#009;
+	background:transparent none;
+}
+span.clsLxrXmlCdata {	/* XML source content of CDATA secrion */
+	color:#000;
+	background:transparent none;
+}
+
+
+
+/* ---------- Core::Structure Modules ---------- */
+
+/* body */
+body {
+	color:#666;
+	background:#F0F0E0 none;
+	font-size:85%;
+	margin:0em;
+	padding:0em;
+}
+
+
+
+/* ---------- Core::Text Modules ---------- */
+
+/* abbr, acronym */
+abbr, acronym {
+	border-bottom:dotted 1px #930;
+	cursor:help;
+}
+
+/* address */
+address {
+	font-size:smaller;
+	font-style:italic;
+	font-family:Verdana,Helvetica,sans-serif;
+	border-top:solid 1px #CC9;
+	padding-top:0.6em;
+	margin-top:4em;
+}
+
+/* blockquote */
+blockquote {
+}
+
+/* code */
+code {
+	color:#33F;
+	background:transparent none;
+	font-family:"Courier New",monospace;
+}
+code.clsDTDs {
+	font-size:0.9em;
+	font-family:"Andale Mono","ＭＳ ゴシック","Osaka－等幅",monospace;
+}
+code.clsIDL {
+	font-size:0.9em;
+	font-family:"Lucida Console","ＭＳ ゴシック","Osaka－等幅",monospace;
+}
+code.clsClassHierarchy {
+	font-family:"Courier New","ＭＳ ゴシック","Osaka－等幅",monospace;
+}
+code.clsSample {
+	color:#666;
+	background:#F0F0E0 none;
+	font-family:"Courier New",monospace;
+	display:block;
+	padding:0em 0.6em;
+}
+dl.clsGrammar code {
+	font-weight:bold;
+}
+
+/* div */
+div.clsSection2 {
+	margin:2em 0em;
+}
+div.clsSection3 {
+}
+div.clsSection4 {
+}
+div.clsSection5 {
+}
+div.clsSection6 {
+}
+div.clsCaution {
+	color:#663;
+	background:#F0F0E0 none;
+	border:2px dashed #CC9;
+	padding:0.4em;
+}
+div.clsRefFormat {
+	color:#inherit;
+	background:#F0F0E0 none;
+	font-size:90%;
+	padding:0.6em;
+}
+
+/* em */
+em {
+	color:#963;
+	background:transparent none;
+	font-style:italic;
+}
+
+/* h1 */
+h1 {
+	font-size:1.4em;
+	border-bottom:2px dashed #630;
+}
+
+/* h2 */
+h2 {
+	font-size:1.1em;
+	border-bottom:1px solid #966;
+	margin:1.2em 0em 0.6em 0em;
+	clear:both;
+}
+
+/* h3 */
+h3 {
+	font-size:1em;
+	margin-bottom:0.4em;
+	margin-top:1.3em;
+	clear:both;
+}
+
+/* p */
+p {
+	text-indent:1.1em;
+	line-height:1.3em;
+	margin-top:0.4em;
+	margin-bottom:0.4em;
+}
+
+/* pre */
+pre {
+	font-family:"ＭＳ ゴシック","Osaka－等幅",monospace;
+	line-height:1.1em;
+	margin-top:1em;
+	margin-bottom:1em;
+}
+pre.clsNoSample {
+	font-family:"Courier New",monospace;
+	margin-left:1em;
+}
+
+/* span */
+span.clsDisabled {
+	color:#999;
+}
+span.clsAccel {
+	text-decoration:underline;
+}
+span.clsResourceNo {	/* represents resource (table, image, ...) number. use instead of (caption strong) */
+	font-weight:bold;
+	font-family:Arial;
+}
+span.clsECMAInternal {	/* jscript reference ECMA-262 internal property or attribute */
+	color:#900;
+	background:transparent none;
+	font-family:"Times New Roman", Times, serif;
+}
+span.clsJSError {
+	color:#606;
+	background:transparent none;
+	font-family:Tahoma,Verdana,sans-serif;
+}
+
+/* strong */
+strong {
+	font-weight:bold;
+}
+code.clsSample strong {
+	color:#663;
+	background:transparent none;
+}
+
+/* var */
+var {
+	font-size:0.92em;
+	font-style:italic;
+	font-family:Verdana,sans-serif;
+}
+dl.clsGrammar var {
+	color:#090;
+	background:transparent none;
+	font-size:1em;
+}
+
+
+
+/* ---------- Core::Hypertext Module ---------- */
+
+/* a */
+a {
+	color:#930;
+	background:transparent none;
+}
+a:hover, a:active {
+	color:#C63;
+	background:#FFFFE0 none;
+}
+a.clsFooterIcon {
+	float:right;
+}
+dl.clsGrammar var a:link, dl.clsGrammar var a:visited {
+	color:#090;
+	background:transparent none;
+}
+dl.clsGrammar var a:hover, dl.clsGrammar var a:active {
+	color:#060;
+	background:transparent none;
+}
+pre a:link {
+	color:#00C;
+	background:transparent none;
+	text-decoration:underline;
+}
+pre a:visited {
+	color:#00C;
+	background-color:transparent;
+	text-decoration:underline;
+}
+pre a:hover {
+	color:#33F;
+	background:transparent none;
+	text-decoration:underline;
+}
+pre a:active {
+	color:#33F;
+	background:transparent none;
+	text-decoration:underline;
+}
+
+
+
+/* ---------- Core::List Modules ---------- */
+
+/* dd */
+dd {
+	padding-left:1em;
+	margin-left:1em;
+}
+
+/* dl */
+dl.clsGrammar {
+	color:inherit;
+	background:#FFFFF0 none;
+	padding:0.4em;
+}
+
+/* dt */
+dt {
+	margin-top:0.3em;
+}
+dl.clsHistory dt {
+	font-weight:bold;
+}
+
+/* li */
+li.clsMJTPGrass {
+	list-style-image:url(../image/grass.png);
+}
+li.clsMJTPCompleted {
+	list-style-image:url(../image/completed.png);
+}
+
+/* ul */
+ul {
+	padding-left:1em;
+	margin-left:1.3em;
+}
+ul.clsEmptyList {
+	color:#999;
+	background:transparent none;
+}
+ul.clsNoStar {
+	list-style-type:none;
+}
+ul.clsMJTPGrass {
+	list-style-image:url(../image/grass.png);
+}
+ul.clsMJTPCompleted {
+	list-style-image:url(../image/completed.png);
+}
+
+
+
+/* ---------- Applet Modules ---------- */
+
+
+
+/* ---------- TextExtension::Presentation Modules ---------- */
+
+/* hr */
+hr {
+	height:0px;
+	border:none;
+	border-bottom:1px solid #993;
+}
+
+
+
+/* ---------- TextExtension::Edit Modules ---------- */
+
+/* del */
+del {
+	color:#999;
+	text-decoration:line-through;
+}
+
+/* ins */
+ins {
+	text-decoration:none;
+}
+
+
+
+/* ---------- TextExtension::Bi-directionalText Module ---------- */
+
+
+
+/* ---------- Forms Modules ---------- */
+
+/* form */
+form {
+	border:1px solid #CC9;
+	padding:0.4em;
+	margin:0em;
+}
+
+/* input */
+input {
+	font-size:100%;
+	border:1px solid #CC9;
+}
+
+
+
+/* ---------- Table Modules ---------- */
+
+/* caption */
+caption {
+	caption-side:top;
+	text-align:left;
+	text-decoration:underline;
+	padding-top:0.6em;	/* for IE, not using margin */
+	padding-bottom:0em;
+}
+
+/* table */
+table {
+	color:inherit;
+	background:#CC9 none;
+	border:1px solid #996;
+}
+
+/* td */
+td {
+	color:inherit;
+	background:#FFF none;
+	border:none;
+}
+
+/* th */
+th {
+	color:#FFF;
+	background:#CC9 none;
+	text-align:left;
+	vertical-align:top;
+	white-space:nowrap;
+	border:none;
+}
+
+/* tr */
+
+
+
+/* ----------Image Modules ---------- */
+
+/* img */
+img {
+	border:none;
+}
+img.clsFloatLeft {
+	float:left;
+	margin:4px;
+}
+img.clsFloatRight {
+	float:right;
+	margin:4px;
+}
+img.clsSpace {
+	margin:1em;
+}
+
+
+
+/* ------------ Client-sideImageMap Module ------------ */
+/* ------------ Object Module ------------ */
+/* ------------ Frames Modules ------------ */
+/* ------------ IFrame Module ------------ */
+/* ------------ MetaInformation Module ------------ */
+/* ------------ Scripting Modules ------------ */
+/* ------------ StyleSheet Module ------------ */
+/* ------------ Link Module ------------ */
+/* ------------ Base Module ------------ */
+
+
+
+/* ------------ Ruby Module ------------ */
+
+/* rt */
+rt {
+	font-size:65%;
+}
